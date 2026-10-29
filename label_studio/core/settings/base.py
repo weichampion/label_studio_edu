@@ -244,7 +244,9 @@ INSTALLED_APPS = [
     'ml_model_providers',
     'jwt_auth',
     'session_policy',
-    'orgext',  # 教育企业版扩展：任务分配 / 角色权限 / 多租户部门
+    # orgext is kept installed only for its migration graph / legacy tables; its runtime
+    # role and assignment hooks are disabled (school_tenancy is the active tenant system).
+    'orgext',
 ]
 
 MIDDLEWARE = [
@@ -275,8 +277,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'core.api_permissions.HasObjectPermission',
         'rest_framework.permissions.IsAuthenticated',
-        # orgext: 消费视图上的 permission_required，按角色矩阵做视图级 RBAC（技术方案 §4）
-        'orgext.api_permissions.RolePermission',
     ],
     'EXCEPTION_HANDLER': 'core.utils.common.custom_exception_handler',
     'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
@@ -648,18 +648,23 @@ DATA_MANAGER_PREPROCESS_FILTER = 'data_manager.functions.preprocess_filter'
 DATA_MANAGER_CHECK_ACTION_PERMISSION = 'data_manager.actions.check_action_permission'
 BULK_UPDATE_IS_LABELED = 'tasks.functions.bulk_update_is_labeled_by_overlap'
 USER_LOGIN_FORM = 'users.forms.LoginForm'
-# orgext: 教育企业版 mixin 接入点（子类继承 OSS 原 mixin，P0 行为不变）
-PROJECT_MIXIN = 'orgext.mixins.ProjectMixin'
+PROJECT_MIXIN = 'projects.mixins.ProjectMixin'
 TASK_MIXIN = 'tasks.mixins.TaskMixin'
 LSE_PROJECT = None
 GET_TASKS_AGREEMENT_QUERYSET = None
 SHOULD_ATTEMPT_GROUND_TRUTH_FIRST = None
 IS_USER_IN_GT_EVALUATION_WINDOW = None
 ANNOTATION_MIXIN = 'tasks.mixins.AnnotationMixin'
-ORGANIZATION_MIXIN = 'orgext.mixins.OrganizationMixin'
-USER_MIXIN = 'orgext.mixins.UserMixin'
-ORGANIZATION_MEMBER_MIXIN = 'orgext.mixins.OrganizationMemberMixin'
+ORGANIZATION_MIXIN = 'organizations.mixins.OrganizationMixin'
+USER_MIXIN = 'users.mixins.UserMixin'
+ORGANIZATION_MEMBER_MIXIN = 'organizations.mixins.OrganizationMemberMixin'
 MEMBER_PERM = 'core.api_permissions.MemberHasOwnerPermission'
+# SCHOOL-TENANCY: optional callable(queryset, user) that narrows the projects a user may see
+PROJECT_QUERYSET_SCOPE = None
+# SCHOOL-TENANCY: optional callable(queryset, request) that narrows the users listed by /api/users
+USER_QUERYSET_SCOPE = None
+# SCHOOL-TENANCY: optional callable(templates_and_groups, request) that narrows /api/templates
+TEMPLATE_LIST_SCOPE = None
 RECALCULATE_ALL_STATS = None
 GET_STORAGE_LIST = 'io_storages.functions.get_storage_list'
 STORAGE_LOAD_TASKS_JSON = 'io_storages.utils.load_tasks_json_lso'

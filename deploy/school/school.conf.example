@@ -1,0 +1,38 @@
+# Label Studio 学校版单机部署配置。复制为 school.conf 后修改，然后执行：
+#   sudo deploy/school/install.sh deploy/school/school.conf
+# 本文件不含密码/密钥；密钥由 install.sh 首次运行时生成并保存在 /etc/label-studio、/etc/garage。
+
+# 浏览器访问用的域名或 IP（必须与证书一致）
+SERVER_NAME=label.example.edu.cn
+
+# 数据目录：PostgreSQL 数据库和 Garage 对象存储。建议放在独立的数据盘/RAID 上。
+DATA_ROOT=/srv/label-studio/data
+
+# 备份目录：必须是“另一块物理磁盘”的挂载点（例如 /dev/sdb1 挂载到此处），并写入 /etc/fstab。
+BACKUP_ROOT=/srv/label-studio/backup
+
+# HTTPS 证书。留空则生成自签名证书（浏览器会提示不受信任，仅适合试点）。
+# 学校有证书时填写 PEM 格式证书链和私钥的绝对路径。
+TLS_CERT=
+TLS_KEY=
+
+# PostgreSQL 主版本（来自 PostgreSQL 官方 apt 源 PGDG）。国内可改用镜像，例如：
+#   PGDG_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/apt
+PG_MAJOR=17
+PGDG_MIRROR=https://apt.postgresql.org/pub/repos/apt
+
+# 对象存储桶名
+S3_BUCKET=label-studio
+
+# uWSGI 进程数（经验值：CPU 核数，内存每 GB 约 1 个，取较小者）
+UWSGI_PROCESSES=4
+
+# 每日备份时间（systemd OnCalendar 格式）与数据库备份保留天数（对象备份为只增不删）
+BACKUP_ON_CALENDAR="*-*-* 02:30:00"
+BACKUP_RETENTION_DAYS=30
+
+# 仅供测试虚拟机使用：允许备份目录与数据在同一块盘上。生产环境必须保持 no。
+ALLOW_SAME_DISK_BACKUP=no
+
+# 前端已在其他机器构建并拷贝 web/dist 时可设为 yes，跳过 bun 构建（需要约 6 GB 内存）。
+SKIP_FRONTEND_BUILD=no

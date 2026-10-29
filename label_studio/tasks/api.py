@@ -192,12 +192,13 @@ class TaskListAPI(DMTaskListAPI):
         context = super().get_serializer_context()
         project_id = self.request.data.get('project')
         if project_id:
-            context['project'] = generics.get_object_or_404(Project, pk=project_id)
+            # SCHOOL-TENANCY: only projects the user can access (was: any project id)
+            context['project'] = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=project_id)
         return context
 
     def perform_create(self, serializer):
         project_id = self.request.data.get('project')
-        project = generics.get_object_or_404(Project, pk=project_id)
+        project = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=project_id)
         instance = serializer.save(project=project)
         emit_webhooks_for_instance(
             self.request.user.active_organization, project, WebhookAction.TASKS_CREATED, [instance]

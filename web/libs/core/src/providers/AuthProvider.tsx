@@ -73,18 +73,6 @@ export enum ABILITY {
   can_manage_storage = "storages.change",
   can_sync_storage = "storages.sync",
 
-  // Workspaces (orgext)
-  can_create_workspaces = "workspaces.create",
-  can_view_workspaces = "workspaces.view",
-  can_change_workspaces = "workspaces.change",
-  can_delete_workspaces = "workspaces.delete",
-  can_invite_workspace = "workspaces.invite",
-
-  // Assignments (orgext)
-  can_create_assignments = "assignments.create",
-  can_view_assignments = "assignments.view",
-  can_change_assignments = "assignments.change",
-  can_delete_assignments = "assignments.delete",
 }
 
 export type Ability = ABILITY;

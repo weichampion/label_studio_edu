@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>未加入学院</title>
+  <style>
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f6f8; }
+    .box { max-width: 520px; margin: 120px auto; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    a { margin-right: 16px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>当前账号未加入任何学院</h2>
+    <p>{{ user.email }} 还没有有效的学院身份，或所在学院已停用。请联系学院管理员将你加入学院。</p>
+    <p>
+      {% if user.is_superuser %}<a href="/admin/">平台管理后台</a>{% endif %}
+      <a href="{% url 'logout' %}">退出登录</a>
+    </p>
+  </div>
+</body>
+</html>

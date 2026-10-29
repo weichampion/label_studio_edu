@@ -6,6 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useUpdatePageTitle } from "@humansignal/core";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { HeidiTips } from "../../components/HeidiTips/HeidiTips";
+import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { useAPI } from "../../providers/ApiProvider";
 import { CreateProject } from "../CreateProject/CreateProject";
 import { InviteLink } from "../Organization/PeoplePage/InviteLink";
@@ -59,6 +60,7 @@ const actions = [
 type Action = (typeof actions)[number]["type"];
 
 export const HomePage: Page = () => {
+  const { permissions } = useAuth();
   const api = useAPI();
   const location = useLocation();
   const [modalIsOpen, setModalIsOpen] = useAtom(creationDialogOpen);
@@ -143,7 +145,9 @@ export const HomePage: Page = () => {
             </Typography>
           </div>
           <div className="flex justify-start gap-4">
-            {actions.map((action) => {
+            {actions.filter((action) => permissions.can(
+              action.type === "createProject" ? "projects.create" : "organizations.invite"
+            )).map((action) => {
               return (
                 <Button
                   key={action.title}

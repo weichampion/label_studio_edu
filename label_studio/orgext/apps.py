@@ -1,7 +1,9 @@
-"""orgext — 教育企业版扩展 app（任务分配 / 角色权限 / 多租户部门）。
+"""Legacy orgext schema app.
 
-本 app 通过 core.settings 里的 *_MIXIN 与 load_func 扩展点接入 Label Studio 内核，
-避免直接修改内核代码，便于跟随上游升级。
+The runtime features (Workspaces, Assignments and the old role matrix) have been replaced by
+``school_tenancy``. The app remains installed only so its historical migrations and the
+``Project.workspace`` / ``OrganizationMember.role`` columns keep a valid migration graph and
+existing databases stay readable.
 """
 from django.apps import AppConfig
 
@@ -12,8 +14,7 @@ class OrgextConfig(AppConfig):
     default_auto_field = 'django.db.models.AutoField'
 
     def ready(self):
-        from orgext.permissions import register_role_permissions
-
-        register_role_permissions()
-
-        import orgext.signals  # noqa: F401
+        # orgext has been replaced by school_tenancy. Keep the app installed only so its
+        # historical migrations and tables remain valid; do not register role predicates
+        # or assignment signals, which would otherwise override the school RBAC.
+        return

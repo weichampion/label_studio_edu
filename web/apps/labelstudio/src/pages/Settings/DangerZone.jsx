@@ -11,6 +11,7 @@ import { Spinner } from "../../components/Spinner/Spinner";
 import { useAPI } from "../../providers/ApiProvider";
 import { useProject } from "../../providers/ProjectProvider";
 import { cn } from "../../utils/bem";
+import { canManageProject, hasProjectFeature } from "@humansignal/core/lib/utils/project-permissions";
 
 export const DangerZone = () => {
   const { project } = useProject();
@@ -208,7 +209,8 @@ export const DangerZone = () => {
 
       {project.id ? (
         <div style={{ marginTop: 16 }}>
-          {buttons.map((btn) => {
+          {buttons.filter((btn) => btn.type === "project"
+            ? hasProjectFeature(project, "delete_project") : canManageProject(project)).map((btn) => {
             const waiting = processing === btn.type;
             const disabled = btn.disabled || (processing && !waiting);
 

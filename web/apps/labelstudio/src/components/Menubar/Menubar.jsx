@@ -5,7 +5,6 @@ import {
   IconFolder,
   IconHome,
   IconHotkeys,
-  IconPeople,
   IconPersonInCircle,
   IconPin,
   IconTerminal,
@@ -18,7 +17,6 @@ import { Button, Userpic, ThemeToggle } from "@humansignal/ui";
 import { useConfig } from "../../providers/ConfigProvider";
 import { useContextComponent, useFixedLocation } from "../../providers/RoutesProvider";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
-import { ABILITY } from "@humansignal/core/providers/AuthProvider";
 import { cn } from "../../utils/bem";
 import { absoluteURL, isDefined } from "../../utils/helpers";
 import { Breadcrumbs } from "../Breadcrumbs/Breadcrumbs";
@@ -75,12 +73,6 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
   const contentClass = cn("content-wrapper");
   const contextItem = menubarClass.elem("context-item");
   const showNewsletterDot = !isDefined(user?.allow_newsletters);
-
-  // Permissions for menu filtering
-  const canManageWorkspaces = user?.permissions?.includes(ABILITY.can_create_workspaces) ?? false;
-  const canManageOrg = user?.permissions?.includes(ABILITY.can_change_organizations) ?? false;
-  // orgext：学员不展示组织管理入口
-  const isAnnotator = user?.org_role === "annotator";
 
   const sidebarPin = useCallback(
     (e) => {
@@ -143,7 +135,7 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
   return (
     <div className={contentClass}>
       {enabled && (
-        <div className={menubarClass}>
+        <div className={menubarClass.mod({ school: Boolean(user?.school_role) })}>
           <Dropdown.Trigger dropdown={menuDropdownRef} closeOnClickOutside={!sidebarPinned}>
             <div className={`${menubarClass.elem("trigger")} main-menu-trigger`}>
               <LSLogo className={`${menubarClass.elem("logo")}`} alt="Label Studio Logo" />
@@ -155,6 +147,11 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
             <LeftContextMenu className={contextItem.mod({ left: true }).toClassName()} />
             <RightContextMenu className={contextItem.mod({ right: true }).toClassName()} />
           </div>
+          {user?.school_role && (
+            <a href="/school/" className={menubarClass.elem("school-link")} data-external>
+              学院工作台
+            </a>
+          )}
 
           <div className={menubarClass.elem("hotkeys").toClassName()}>
             <div className={menubarClass.elem("hotkeys-button").toClassName()}>
@@ -232,12 +229,6 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
               <Menu>
                 {isFF(FF_HOMEPAGE) && <Menu.Item label="Home" to="/" icon={<IconHome />} data-external exact />}
                 <Menu.Item label="Projects" to="/projects" icon={<IconFolder />} data-external exact />
-                {canManageWorkspaces && (
-                  <Menu.Item label="Workspaces" to="/workspaces" icon={<IconPeople />} data-external exact />
-                )}
-                {!isAnnotator && (
-                  <Menu.Item label="Organization" to="/organization" icon={<IconPeople />} data-external exact />
-                )}
 
                 <Menu.Spacer />
 

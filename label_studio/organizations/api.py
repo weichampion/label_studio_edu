@@ -190,13 +190,6 @@ class OrganizationMemberListAPI(generics.ListAPIView):
             **context,
         }
 
-    def _orgext_scope_by_role(self, qs, org):
-        """orgext：按角色收口可见成员——admin+ 全量；manager 仅本工作区成员∪自己；其余仅自己。"""
-        from orgext.permissions import visible_user_ids
-
-        ids = visible_user_ids(self.request.user, organization_id=org.id)
-        return qs if ids is None else qs.filter(user_id__in=ids)
-
     def get_queryset(self):
         org = generics.get_object_or_404(self.request.user.organizations, pk=self.kwargs[self.lookup_field])
         if flag_set('fix_backend_dev_3134_exclude_deactivated_users', self.request.user):
@@ -212,7 +205,7 @@ class OrganizationMemberListAPI(generics.ListAPIView):
                 qs = org.members.prefetch_related('user__om_through').order_by('user__username')
         else:
             qs = org.members.prefetch_related('user__om_through').order_by('user__username')
-        return self._orgext_scope_by_role(qs, org)
+        return qs
 
     def list(self, request, *args, **kwargs):
         page = self.paginated_members  # Using cached property to avoid multiple queries

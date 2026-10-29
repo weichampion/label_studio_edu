@@ -20,6 +20,14 @@
     width: var(--spacing-tight);
   }
 
+  &__school-link {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
   &__context {
     flex: 1;
     display: flex;
@@ -104,6 +112,21 @@
     height: 8px;
     border-radius: 50%;
     background: var(--primary_link);
+  }
+}
+
+.menu-header_school {
+  .menu-header__context {
+    min-width: 0;
+  }
+
+  .menu-header__context-item_left {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .menu-header__context-item_right {
+    flex-shrink: 0;
   }
 }
 

@@ -8,6 +8,7 @@ import { Menu, Pagination } from "../../components";
 import { cn } from "../../utils/bem";
 import { absoluteURL } from "../../utils/helpers";
 import { ProjectStateChip } from "@humansignal/app-common";
+import { hasProjectFeature } from "@humansignal/core/lib/utils/project-permissions";
 
 const DEFAULT_CARD_COLORS = ["#FFFFFF", "#FDFDFC"];
 
@@ -105,8 +106,15 @@ const ProjectCard = ({ project }) => {
               <Dropdown.Trigger
                 content={
                   <Menu contextual>
-                    <Menu.Item href={`/projects/${project.id}/settings`}>Settings</Menu.Item>
-                    <Menu.Item href={`/projects/${project.id}/data?labeling=1`}>Label</Menu.Item>
+                    {hasProjectFeature(project, "configure_project") && (
+                      <Menu.Item href={`/projects/${project.id}/settings`}>Settings</Menu.Item>
+                    )}
+                    {hasProjectFeature(project, "delete_project") && !hasProjectFeature(project, "configure_project") && (
+                      <Menu.Item href={`/projects/${project.id}/settings/danger-zone`}>Delete Project</Menu.Item>
+                    )}
+                    {hasProjectFeature(project, "annotate") && (
+                      <Menu.Item href={`/projects/${project.id}/data?labeling=1`}>Label</Menu.Item>
+                    )}
                   </Menu>
                 }
               >

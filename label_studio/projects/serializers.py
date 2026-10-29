@@ -87,6 +87,56 @@ class CreatedByFromContext:
 
 @extend_schema_serializer(deprecate_fields=['show_ground_truth_first'])
 class ProjectSerializer(FlexFieldsModelSerializer):
+    school_features = serializers.SerializerMethodField()
+    school_can_manage = serializers.SerializerMethodField()
+    school_label_config = serializers.SerializerMethodField()
+
+    def get_fields(self):
+        from django.conf import settings
+
+        fields = super().get_fields()
+        if 'school_tenancy' not in settings.INSTALLED_APPS:
+            fields.pop('school_features', None)
+            fields.pop('school_can_manage', None)
+            fields.pop('school_label_config', None)
+        elif self.instance is not None:
+            # Project configuration grants never transfer ownership or move a project across colleges.
+            for name in ('organization', 'created_by'):
+                if name in fields:
+                    fields[name].read_only = True
+        return fields
+
+    def get_school_features(self, project):
+        from django.conf import settings
+
+        if 'school_tenancy' not in settings.INSTALLED_APPS:
+            return None
+        from school_tenancy.access import project_features
+
+        request = self.context.get('request')
+        return project_features(request.user, project) if request else []
+
+    def get_school_can_manage(self, project):
+        from django.conf import settings
+
+        if 'school_tenancy' not in settings.INSTALLED_APPS:
+            return None
+        from school_tenancy.access import can_manage_project
+
+        request = self.context.get('request')
+        return bool(request and can_manage_project(request.user, project))
+
+    def get_school_label_config(self, project):
+        """Labeling config limited to the student's granted annotation modules; None means use label_config."""
+        from django.conf import settings
+
+        if 'school_tenancy' not in settings.INSTALLED_APPS:
+            return None
+        from school_tenancy.access import student_label_config
+
+        request = self.context.get('request')
+        return student_label_config(request.user, project) if request else None
+
     """Serializer get numbers from project queryset annotation,
     make sure, that you use correct one(Project.objects.with_counts())
     """
@@ -267,6 +317,9 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'created_by': {'required': False},
         }
         fields = [
+            'school_features',
+            'school_can_manage',
+            'school_label_config',
             'id',
             'title',
             'description',
@@ -277,8 +330,6 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'enable_empty_annotation',
             'show_annotation_history',
             'organization',
-            'workspace',
-            'assignment_mode',
             'color',
             'maximum_annotations',
             'is_published',

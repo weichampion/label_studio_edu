@@ -103,30 +103,13 @@ class BaseUserSerializerUpdate(BaseUserSerializer):
 
 class BaseWhoAmIUserSerializer(BaseUserSerializer):
     permissions = serializers.SerializerMethodField()
-    org_role = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
-        fields = BaseUserSerializer.Meta.fields + ('permissions', 'org_role')
+        fields = BaseUserSerializer.Meta.fields + ('permissions',)
 
     def get_permissions(self, user) -> list[str]:
-        try:
-            from orgext.roles import ROLE_PERMISSIONS
-            role = getattr(user, 'org_role', None)
-            if role is None:
-                return [perm for _, perm in all_permissions]
-            allowed = set()
-            for perm_name, roles in ROLE_PERMISSIONS.items():
-                if role in roles:
-                    allowed.add(perm_name)
-            return sorted(allowed)
-        except Exception:
-            return [perm for _, perm in all_permissions]
-
-    def get_org_role(self, user) -> str | None:
-        try:
-            return getattr(user, 'org_role', None)
-        except Exception:
-            return None
+        # Keep the list aligned with the active role predicates (school_tenancy when enabled).
+        return sorted(permission for _, permission in all_permissions if user.has_perm(permission))
 
 
 class UserSimpleSerializer(BaseUserSerializer):

@@ -96,29 +96,6 @@ export const API_CONFIG = {
     // FSM
     fsmStateHistory: "GET:/fsm/entities/:entityType/:entityId/history",
 
-    // Workspaces (orgext)
-    workspaces: "/workspaces",
-    workspace: "/workspaces/:pk",
-    updateWorkspace: "PATCH:/workspaces/:pk",
-    createWorkspace: "POST:/workspaces",
-    workspaceMembers: "/workspaces/:pk/members",
-    createWorkspaceMember: "POST:/workspaces/:pk/members",
-    updateWorkspaceMember: "PATCH:/workspaces/:pk/members/:userPk",
-    removeWorkspaceMember: "DELETE:/workspaces/:pk/members/:userPk",
-
-    // User accounts (orgext, admin+)
-    createUserAccount: "POST:/user-accounts",
-
-    // Organization member role (orgext)
-    updateMemberRole: "PATCH:/organizations/:pk/memberships/:userPk/role",
-
-    // Assignments (orgext)
-    projectAssignments: "/projects/:pk/assignments",
-    createAssignment: "POST:/projects/:pk/assignments",
-    autoAssign: "POST:/projects/:pk/assignments/auto",
-    assignmentDetail: "/assignments/:pk",
-    deleteAssignment: "DELETE:/assignments/:pk",
-    myAssignments: "/users/me/assignments",
   },
   alwaysExpectJSON: false,
 };

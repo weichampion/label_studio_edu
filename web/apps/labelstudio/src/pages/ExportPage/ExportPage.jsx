@@ -119,8 +119,8 @@ export const ExportPage = () => {
             pk: pageParams.id,
           },
         })
-        .then(({ export_files }) => {
-          if (!cancelled) setPreviousExports(export_files.slice(0, 1));
+        .then((response) => {
+          if (!cancelled) setPreviousExports(response?.export_files?.slice(0, 1) ?? []);
         });
 
       api
@@ -129,8 +129,9 @@ export const ExportPage = () => {
             pk: pageParams.id,
           },
         })
-        .then((formats) => {
+        .then((response) => {
           if (cancelled) return;
+          const formats = Array.isArray(response) ? response : [];
           setAvailableFormats(formats);
           setCurrentFormat(formats[0]?.name);
         });

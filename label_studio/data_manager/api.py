@@ -234,7 +234,7 @@ class ViewAPI(viewsets.ModelViewSet):
         return Response(status=200)
 
     def get_queryset(self):
-        return View.objects.filter(project__organization=self.request.user.active_organization).order_by('order', 'id')
+        return View.objects.filter(project__in=Project.objects.for_user(self.request.user)).order_by('order', 'id')
 
 
 class TaskPagination(PageNumberPagination):
@@ -529,6 +529,12 @@ class ProjectStateAPI(APIView):
                 'config_has_control_tags': len(project.get_parsed_config()) > 0,
             }
         )
+        if 'school_tenancy' in settings.INSTALLED_APPS:
+            from school_tenancy.access import has_project_feature
+
+            data['can_delete_tasks'] = has_project_feature(request.user, project, 'manage_tasks')
+            data['can_manage_tasks'] = data['can_delete_tasks']
+            data['can_manage_annotations'] = has_project_feature(request.user, project, 'annotate')
         return Response(data)
 
 

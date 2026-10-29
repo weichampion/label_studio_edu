@@ -1,8 +1,7 @@
 import type { Ability } from "../providers/AuthProvider";
 
-export type OrgRole = "owner" | "admin" | "manager" | "reviewer" | "annotator";
-
 export type APIUser = {
+  school_role?: "college_admin" | "teacher" | "student" | null;
   id: number;
   first_name: string;
   last_name: string;
@@ -20,5 +19,4 @@ export type APIUser = {
   allow_newsletters: boolean;
   date_joined: string;
   permissions?: Ability[];
-  org_role?: OrgRole;
 };

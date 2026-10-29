@@ -151,8 +151,7 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
     def __init__(self, *args, **kwargs):
         super(OrganizationMemberAdmin, self).__init__(*args, **kwargs)
 
-        # orgext: role 加进来方便在没有前端角色管理页之前直接测试/管理
-        self.list_display = ('id', 'user', 'organization', 'role', 'created_at', 'updated_at')
+        self.list_display = ('id', 'user', 'organization', 'created_at', 'updated_at')
         self.search_fields = ('user__email', 'organization__title')
         self.ordering = ('id',)
 

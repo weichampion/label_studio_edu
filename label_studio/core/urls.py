@@ -68,7 +68,6 @@ urlpatterns = [
     re_path(r'^', include('webhooks.urls')),
     re_path(r'^', include('labels_manager.urls')),
     re_path(r'^', include('fsm.urls')),
-    re_path(r'^', include('orgext.urls')),  # orgext: 教育企业版 API（部门/角色/分配）
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response
     re_path(r'health/', views.health, name='health'),
@@ -111,6 +110,10 @@ urlpatterns = [
     path('docs/api/schema/json/', SpectacularJSONAPIView.as_view(), name='schema-json'),
     path('docs/api/schema/yaml/', SpectacularYAMLAPIView.as_view(), name='schema-yaml'),
 ]
+
+# SCHOOL-TENANCY: college workbench pages and APIs, only when the school app is installed
+if 'school_tenancy' in settings.INSTALLED_APPS:
+    urlpatterns.append(re_path(r'^', include('school_tenancy.urls')))
 
 if settings.DEBUG:
     try:

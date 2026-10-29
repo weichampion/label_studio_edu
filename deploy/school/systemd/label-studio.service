@@ -1,0 +1,32 @@
+# Managed by deploy/school/install.sh
+[Unit]
+Description=Label Studio application server (uWSGI)
+After=network-online.target postgresql@${PG_MAJOR}-main.service garage.service
+Wants=network-online.target
+Requires=postgresql@${PG_MAJOR}-main.service garage.service
+
+[Service]
+Type=simple
+User=labelstudio
+Group=labelstudio
+EnvironmentFile=/etc/label-studio/label-studio.env
+WorkingDirectory=${SRC_DIR}/label_studio
+ExecStart=${APP_ROOT}/venv/bin/uwsgi --ini /etc/label-studio/uwsgi.ini
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+LimitNOFILE=65536
+UMask=0027
+StateDirectory=label-studio
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# Managed by deploy/school/install.sh
+[Unit]
+Description=Schedule Label Studio backups
+
+[Timer]
+OnCalendar=${BACKUP_ON_CALENDAR}
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

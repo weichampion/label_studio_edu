@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>学院工作台 - {{ college.organization.title }}</title>
+  <style>
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; margin: 0; background: #f5f6f8; color: #222; }
+    header { background: #1f3a5f; color: #fff; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; }
+    header a { color: #fff; margin-left: 18px; }
+    main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    section { background: #fff; border-radius: 8px; padding: 18px 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    h2 { font-size: 18px; margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #e8eef7; font-size: 12px; margin: 2px; }
+    .active { background: #d8f3dc; }
+    .msg { padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
+    .msg.success { background: #d8f3dc; } .msg.error { background: #fde2e1; }
+    form.inline { display: inline; }
+    input[type=text], input[type=email], input[type=password], textarea, select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 5px 12px; border: 0; border-radius: 4px; background: #1f6feb; color: #fff; cursor: pointer; }
+    button.link { background: none; color: #c0392b; padding: 0 4px; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+    .muted { color: #777; font-size: 13px; }
+  </style>
+</head>
+<body>
+<header>
+  <div><strong>学院工作台</strong>　{{ college.organization.title }}（{{ college.code }}）· {{ role_label }}</div>
+  <div>{{ summary.email }}<a href="{% url 'projects:project-index' %}">进入标注平台</a><a href="{% url 'logout' %}">退出登录</a></div>
+</header>
+<main>
+  {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}
+
+  <section>
+    <h2>我的学院</h2>
+    <table>
+      <tr><th>学院</th><th>代码</th><th>角色</th><th></th></tr>
+      {% for c in summary.colleges %}
+      <tr class="{% if c.active %}active{% endif %}">
+        <td>{{ c.title }}</td><td>{{ c.code }}</td><td>{{ c.role_label }}</td>
+        <td>
+          {% if c.active %}当前学院{% else %}
+          <form class="inline" method="post" action="{% url 'school_tenancy:switch' %}">{% csrf_token %}
+            <input type="hidden" name="organization_id" value="{{ c.id }}">
+            <input type="hidden" name="then" value="projects">
+            <button type="submit">切换并进入</button>
+          </form>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p class="muted">每次只能在一个学院中工作；项目、任务和标注数据按学院隔离。</p>
+  </section>
+
+  {% if projects is not None %}
+  <section>
+    <h2>项目与学生分配</h2>
+    <p class="muted">教师仅管理自己创建或被指定负责的项目，学院管理员管理全院。学生默认仅可标注，并可使用项目中的全部标注模块（文本、图像、音频、视频等）；下面的授权仅对该学生、该项目生效。取消全部功能勾选后仅可查看，取消全部模块后也不能标注。</p>
+    <datalist id="student-emails">{% for s in students %}<option value="{{ s.email }}">{% endfor %}</datalist>
+    <table>
+      <tr><th style="width:25%">项目</th><th>学生功能权限</th><th style="width:25%">分配学生（邮箱，可多个）</th></tr>
+      {% for row in projects %}
+      <tr>
+        <td><a href="/projects/{{ row.project.id }}/">{{ row.project.title }}</a><div class="muted">#{{ row.project.id }} · 创建者：{{ row.project.created_by.email }}</div>
+          {% for teacher in row.teachers %}<div class="muted">负责教师：{{ teacher.user.email }}</div>{% endfor %}
+          {% if role == 'college_admin' %}
+          <form method="post" action="{% url 'school_tenancy:project-teacher' row.project.id %}">{% csrf_token %}
+            <input type="email" name="email" placeholder="本院教师邮箱" required style="width:90%">
+            <button type="submit">指定负责教师</button>
+            <button type="submit" name="remove" value="1">取消指定</button>
+          </form>
+          {% endif %}
+        </td>
+        <td>
+          {% for s in row.students %}
+            <div style="border-bottom:1px solid #ddd;padding:8px 0">
+              <strong>{{ s.membership.user.email }}</strong>
+              <form method="post" action="{% url 'school_tenancy:student-features' row.project.id s.membership.user_id %}">{% csrf_token %}
+                {% for f in s.features %}
+                <label style="display:block"><input type="checkbox" name="features" value="{{ f.name }}" {% if f.enabled %}checked{% endif %}> {{ f.label }}</label>
+                {% endfor %}
+                {% if s.modules %}
+                <input type="hidden" name="modules_submitted" value="1">
+                <div class="muted" style="margin-top:6px">可使用的标注模块：</div>
+                {% for m in s.modules %}
+                <label style="display:inline-block;margin-right:12px"><input type="checkbox" name="modules" value="{{ m.name }}" {% if m.enabled %}checked{% endif %}> {{ m.label }}</label>
+                {% endfor %}
+                {% endif %}
+                <button type="submit">保存功能权限</button>
+              </form>
+              <form method="post" action="{% url 'school_tenancy:project-student-remove' row.project.id s.membership.user_id %}">{% csrf_token %}<button class="link">取消项目分配</button></form>
+            </div>
+          {% empty %}<span class="muted">暂无</span>{% endfor %}
+        </td>
+        <td>
+          <form method="post" action="{% url 'school_tenancy:project-students-add' row.project.id %}">{% csrf_token %}
+            <input type="text" name="emails" list="student-emails" placeholder="student@example.edu.cn" style="width:70%">
+            <button type="submit">分配</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="muted">本学院还没有项目，请在标注平台中创建。</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  {% endif %}
+
+  {% if create_grants is not None %}
+  <section>
+    <h2>学生新建项目权限</h2>
+    <p class="muted">按“新建项目 → Labeling Setup”左侧的模板分类授权：学生新建项目时左侧只显示勾选的分类，标注配置也只能来自这些分类的模板；“自定义模板”允许学生自己写任意配置。不勾选即不能新建项目。学生只能看到和管理自己建的项目，授权教师自动成为这些项目的负责教师，学院管理员可查看全院项目。</p>
+    <table>
+      <tr><th style="width:24%">学生</th><th>可使用的模板分类</th><th style="width:16%">授权人</th></tr>
+      {% for row in create_grants %}
+      <tr>
+        <td>{{ row.member.user.email }}</td>
+        <td>
+          <form method="post" action="{% url 'school_tenancy:student-create-templates' row.member.id %}">{% csrf_token %}
+            {% for g in row.groups %}
+            <label style="display:block"><input type="checkbox" name="groups" value="{{ g.name }}" {% if g.enabled %}checked{% endif %}> {{ g.label }}</label>
+            {% endfor %}
+            <button type="submit">保存</button>
+          </form>
+        </td>
+        <td class="muted">{{ row.granted_by.email|default:"未授权" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" class="muted">本学院还没有学生。</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  {% endif %}
+
+  {% if student_projects is not None %}
+  <section>
+    <h2>我的项目与已授权功能</h2>
+    {% if create_groups %}
+    <p>你可以使用以下模板分类新建项目：{% for group in create_groups %}<span class="tag">{{ group }}</span>{% endfor %}
+      <br><span class="muted">在标注平台“项目”页点击 Create，在 Labeling Setup 中只会显示这些分类。</span></p>
+    {% endif %}
+    {% for row in student_projects %}
+    <p><a href="/projects/{{ row.project.id }}/data">{{ row.project.title }}</a>{% if row.owned %} <span class="tag active">我创建的</span>{% endif %}<br>
+      {% for feature in row.features %}<span class="tag">{{ feature }}</span>{% empty %}<span class="muted">仅查看，其他功能尚未授权</span>{% endfor %}
+      {% if row.modules %}<br><span class="muted">可用标注模块：</span>{% for module in row.modules %}<span class="tag">{{ module }}</span>{% endfor %}{% endif %}
+    </p>
+    {% empty %}<p class="muted">还没有分配给你的项目，请联系负责教师。</p>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if members is not None %}
+  <section>
+    <h2>成员管理</h2>
+    <table>
+      <tr><th>邮箱</th><th>姓名</th><th>角色</th><th></th></tr>
+      {% for row in members %}
+      <tr>
+        <td>{{ row.member.user.email }}</td>
+        <td>{{ row.member.user.get_full_name|default:"-" }}</td>
+        <td>
+          <form class="inline" method="post" action="{% url 'school_tenancy:member-role' row.member.id %}">{% csrf_token %}
+            <select name="role">{% for value, label in roles %}<option value="{{ value }}" {% if value == row.role %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <button type="submit">保存</button>
+          </form>
+        </td>
+        <td>
+          {% if row.member.user_id != request.user.id %}
+          <form class="inline" method="post" action="{% url 'school_tenancy:member-remove' row.member.id %}" onsubmit="return confirm('确认将该成员移出本学院？');">{% csrf_token %}
+            <button class="link" type="submit">移出学院</button>
+          </form>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <h3>添加成员</h3>
+    <form method="post" action="{% url 'school_tenancy:member-add' %}">{% csrf_token %}
+      <input type="email" name="email" placeholder="邮箱" required>
+      <input type="text" name="name" placeholder="姓名（新账号）">
+      <input type="password" name="password" placeholder="初始密码（新账号必填）" autocomplete="new-password">
+      <select name="role">{% for value, label in roles %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+      <button type="submit">添加</button>
+    </form>
+    <p class="muted">已存在的账号（例如其他学院的教师）会直接加入本学院，原有学院不受影响。</p>
+    <h3>学生邀请链接</h3>
+    <p><code>{{ invite_url }}</code></p>
+    <p class="muted">通过此链接注册的账号只会成为本学院的学生。</p>
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>

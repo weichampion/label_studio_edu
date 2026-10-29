@@ -1,24 +1,15 @@
-import { Badge, Button, Select, Typography, Tooltip } from "@humansignal/ui";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { Badge, Button, Tooltip } from "@humansignal/ui";
+import { useCallback, useContext } from "react";
 import { IconSpark } from "@humansignal/icons";
 import { Form, Input, TextArea } from "../../components/Form";
 import { RadioGroup } from "../../components/Form/Elements/RadioGroup/RadioGroup";
 import { ProjectContext } from "../../providers/ProjectProvider";
-import { useAPI } from "../../providers/ApiProvider";
 import { cn } from "../../utils/bem";
 import { HeidiTips } from "../../components/HeidiTips/HeidiTips";
 import { createURL } from "../../components/HeidiTips/utils";
 
 export const GeneralSettings = () => {
   const { project, fetchProject } = useContext(ProjectContext);
-  const api = useAPI();
-  const [workspaces, setWorkspaces] = useState([]);
-
-  useEffect(() => {
-    api.callApi("workspaces", { params: { page_size: 999 } }).then((res) => {
-      if (res) setWorkspaces(res.results ?? res);
-    });
-  }, [api]);
 
   const updateProject = useCallback(() => {
     if (project.id) fetchProject(project.id, true);
@@ -41,74 +32,6 @@ export const GeneralSettings = () => {
               <Input name="title" label="Project Name" />
 
               <TextArea name="description" label="Description" style={{ minHeight: 128 }} />
-              <div className={cn("workspace-placeholder").toClassName()}>
-                <div className={cn("workspace-placeholder").elem("badge-wrapper").toClassName()}>
-                  <div className={cn("workspace-placeholder").elem("title").toClassName()}>Workspace</div>
-                </div>
-                <Select
-                  name="workspace"
-                  placeholder="Select a workspace"
-                  value={project.workspace ?? ""}
-                  options={[
-                    { value: "", label: "None (Organization root)" },
-                    ...workspaces.map((ws) => ({ value: ws.id, label: ws.title })),
-                  ]}
-                  onChange={(val) => {
-                    api
-                      .callApi("updateProject", {
-                        params: { pk: project.id },
-                        body: { workspace: val ? Number(val) : null },
-                      })
-                      .then(() => updateProject());
-                  }}
-                  triggerClassName="!flex-1"
-                />
-                <Typography size="small" className="my-tight">
-                  Organize projects by assigning them to a workspace (department or class).{" "}
-                  <a
-                    target="_blank"
-                    href={createURL(
-                      "https://docs.humansignal.com/guide/manage_projects#Create-workspaces-to-organize-projects",
-                      {
-                        experiment: "project_settings_tip",
-                        treatment: "simplify_project_management",
-                      },
-                    )}
-                    rel="noreferrer"
-                    className="underline hover:no-underline"
-                  >
-                    Learn more
-                  </a>
-                </Typography>
-              </div>
-              <RadioGroup
-                name="assignment_mode"
-                label="Task Assignment Mode"
-                labelProps={{ size: "large" }}
-                value={project.assignment_mode ?? "auto"}
-                onChange={(val) => {
-                  api
-                    .callApi("updateProject", {
-                      params: { pk: project.id },
-                      body: { assignment_mode: val },
-                    })
-                    .then(() => updateProject());
-                }}
-                simple
-              >
-                <RadioGroup.Button
-                  key="auto"
-                  value="auto"
-                  label="Free-for-all"
-                  description="Anyone can pick up any task."
-                />
-                <RadioGroup.Button
-                  key="manual"
-                  value="manual"
-                  label="Manual assignment"
-                  description="Tasks must be explicitly assigned to annotators."
-                />
-              </RadioGroup>
               <RadioGroup name="color" label="Color" size="large" labelProps={{ size: "large" }}>
                 {colors.map((color) => (
                   <RadioGroup.Button key={color} value={color}>

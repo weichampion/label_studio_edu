@@ -1,0 +1,12 @@
+# Managed by deploy/school/install.sh
+[Unit]
+Description=Label Studio backup (PostgreSQL dump + object mirror) to the backup disk
+After=postgresql@${PG_MAJOR}-main.service garage.service
+Requires=postgresql@${PG_MAJOR}-main.service garage.service
+RequiresMountsFor=${BACKUP_ROOT}
+
+[Service]
+Type=oneshot
+ExecStart=${SRC_DIR}/deploy/school/bin/backup.sh
+Nice=10
+IOSchedulingClass=idle

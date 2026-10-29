@@ -1,6 +1,10 @@
 // id and title fixed because they'll be always defined in API response
 declare type APIProject = {
   id: number;
+  school_features?: string[] | null;
+  school_can_manage?: boolean | null;
+  /** Labeling config limited to the student's annotation modules; null means the full label_config. */
+  school_label_config?: string | null;
 
   /** Project name. Must be between 3 and 50 characters long. */
   title: string;
@@ -53,12 +57,6 @@ declare type APIProject = {
 
   /** Total task number in project */
   task_number?: number;
-
-  /** Workspace (department/class) this project belongs to (orgext) */
-  workspace?: number | null;
-
-  /** Task assignment mode: "auto" (free-for-all) or "manual" (orgext) */
-  assignment_mode?: "auto" | "manual" | null;
 
   /** Useful annotation number in project not including skipped_annotations_number and ground_truth_number. Total annotations = annotation_number + skipped_annotations_number + ground_truth_number */
   useful_annotation_number?: string;

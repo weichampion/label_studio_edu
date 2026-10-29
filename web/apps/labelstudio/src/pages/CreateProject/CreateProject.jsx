@@ -1,11 +1,9 @@
-import { Select, Typography } from "@humansignal/ui";
 import React from "react";
 import { useHistory } from "react-router";
 import { ToggleItems } from "../../components";
 import { Button } from "@humansignal/ui";
 import { Modal } from "../../components/Modal/Modal";
 import { Space } from "../../components/Space/Space";
-import { HeidiTips } from "../../components/HeidiTips/HeidiTips";
 import { useAPI } from "../../providers/ApiProvider";
 import { cn } from "../../utils/bem";
 import { ConfigPage } from "./Config/Config";
@@ -23,9 +21,6 @@ const ProjectName = ({
   error,
   description,
   setDescription,
-  workspace,
-  setWorkspace,
-  workspaces,
   show = true,
 }) =>
   !show ? null : (
@@ -65,35 +60,6 @@ const ProjectName = ({
           className="project-description w-full"
         />
       </div>
-      <div className="w-full flex flex-col gap-2">
-        <label className="w-full" htmlFor="project_workspace">
-          Workspace
-        </label>
-        <Select
-          name="workspace"
-          id="project_workspace"
-          value={workspace}
-          onChange={(val) => setWorkspace(val)}
-          options={[
-            { value: "", label: "None (Organization root)" },
-            ...workspaces.map((ws) => ({ value: ws.id, label: ws.title })),
-          ]}
-          placeholder="Select a workspace"
-          triggerClassName="!flex-1"
-        />
-        <Typography size="small" className="mt-tight mb-wider">
-          Organize projects by assigning them to a workspace (department or class).{" "}
-          <a
-            href="https://docs.humansignal.com/guide/manage_projects#Create-workspaces-to-organize-projects"
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:no-underline"
-          >
-            Learn more
-          </a>
-        </Typography>
-        <HeidiTips collection="projectCreation" />
-      </div>
     </form>
   );
 
@@ -109,15 +75,6 @@ export const CreateProject = ({ onClose }) => {
   const [error, setError] = React.useState();
   const [description, setDescription] = React.useState("");
   const [sample, setSample] = React.useState(null);
-  const [workspace, setWorkspace] = React.useState("");
-  const [workspaces, setWorkspaces] = React.useState([]);
-
-  React.useEffect(() => {
-    api.callApi("workspaces", { params: { page_size: 999 } }).then((res) => {
-      if (res) setWorkspaces(res.results ?? res);
-    });
-  }, [api]);
-
   const setStep = React.useCallback((step) => {
     _setStep(step);
     const eventNameMap = {
@@ -153,9 +110,8 @@ export const CreateProject = ({ onClose }) => {
       title: name,
       description,
       label_config: project?.label_config ?? "<View></View>",
-      ...(workspace ? { workspace: Number(workspace) } : { workspace: null }),
     }),
-    [name, description, project?.label_config, workspace],
+    [name, description, project?.label_config],
   );
 
   const onCreate = React.useCallback(async () => {
@@ -252,9 +208,6 @@ export const CreateProject = ({ onClose }) => {
           onSubmit={onCreate}
           description={description}
           setDescription={setDescription}
-          workspace={workspace}
-          setWorkspace={setWorkspace}
-          workspaces={workspaces}
           show={step === "name"}
         />
         <ImportPage

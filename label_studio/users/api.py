@@ -3,6 +3,8 @@
 import logging
 
 from core.permissions import ViewClassPermission, all_permissions
+from core.utils.common import load_func
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
@@ -179,15 +181,9 @@ class UserAPI(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'head', 'patch', 'delete']
 
     def get_queryset(self):
-        qs = User.objects.filter(organizations=self.request.user.active_organization)
-        # orgext：按角色收口（admin+ 全量；manager 本学院成员∪自己；其余仅自己），
-        # 与组织成员列表口径一致——DM 等界面依赖此接口，全量开放仅限 admin+
-        from orgext.permissions import visible_user_ids
-
-        ids = visible_user_ids(self.request.user)
-        if ids is not None:
-            qs = qs.filter(id__in=ids)
-        return qs
+        queryset = User.objects.filter(organizations=self.request.user.active_organization)
+        scope = load_func(settings.USER_QUERYSET_SCOPE)
+        return scope(queryset, self.request) if scope else queryset
 
     @extend_schema(exclude=True)
     @action(detail=True, methods=['delete', 'post'], permission_required=all_permissions.avatar_any)

@@ -101,7 +101,7 @@ export const AppStore = types
     },
 
     get labelingConfig() {
-      return self.project.label_config_line ?? self.project.label_config;
+      return self.project.school_label_config ?? self.project.label_config_line ?? self.project.label_config;
     },
 
     get showPreviews() {
@@ -490,6 +490,9 @@ export const AppStore = types
                       "annotation_count",
                       "num_tasks_with_annotations",
                       "queue_total",
+                      "school_features",
+                      "school_can_manage",
+                      "school_label_config",
                     ].join(","),
                   }
                 : null),
@@ -513,6 +516,11 @@ export const AppStore = types
           self.project = Object.assign(self.project ?? {}, newProject ?? {});
         } else if (JSON.stringify(newProject ?? {}) !== JSON.stringify(self.project ?? {})) {
           self.project = newProject;
+        }
+        if (Array.isArray(self.project.school_features)) {
+          self.interfaces.set("import", self.project.school_features.includes("import_tasks"));
+          self.interfaces.set("export", self.project.school_features.includes("export_data"));
+          self.interfaces.set("labelButton", self.project.school_features.includes("annotate"));
         }
         if (isFF(FF_LOPS_E_3)) {
           const itemType = self.SDK.type === "DE" ? "dataset" : "project";

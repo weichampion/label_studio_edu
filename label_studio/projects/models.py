@@ -74,6 +74,12 @@ class ProjectQuerySetWithFSM(FSMStateQuerySetMixin, ProjectQuerySet):
     pass
 
 
+def scope_projects_for_user(queryset, user):
+    """SCHOOL-TENANCY: narrow projects with settings.PROJECT_QUERYSET_SCOPE (no-op when unset)."""
+    scope = load_func(settings.PROJECT_QUERYSET_SCOPE)
+    return scope(queryset, user) if scope else queryset
+
+
 class ProjectManager(models.Manager):
     """
     Manager for Project model.
@@ -111,7 +117,7 @@ class ProjectManager(models.Manager):
         return ProjectQuerySetWithFSM(self.model, using=self._db)
 
     def for_user(self, user):
-        return self.get_queryset().filter(organization=user.active_organization)
+        return scope_projects_for_user(self.get_queryset().filter(organization=user.active_organization), user)
 
     def with_state(self):
         """

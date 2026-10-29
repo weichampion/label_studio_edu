@@ -58,7 +58,10 @@ def user_signup(request):
 
     # make a new user
     if request.method == 'POST':
-        organization = Organization.objects.first()
+        # SCHOOL-TENANCY: the invite token selects the organization (college) instead of the first one
+        organization = Organization.objects.filter(token=token).first() if token else Organization.objects.first()
+        if token and organization is None:
+            raise PermissionDenied()
         if settings.DISABLE_SIGNUP_WITHOUT_LINK is True:
             if not (token and organization and token == organization.token):
                 raise PermissionDenied()
@@ -130,9 +133,13 @@ def user_login(request):
                 request.session.set_expiry(0)
 
             # user is organization member
-            org_pk = Organization.find_by_user(user).pk
-            user.active_organization_id = org_pk
-            user.save(update_fields=['active_organization'])
+            # SCHOOL-TENANCY: keep the current organization; the tenant middleware validates it
+            if user.active_organization_id is None:
+                try:
+                    user.active_organization_id = Organization.find_by_user(user).pk
+                    user.save(update_fields=['active_organization'])
+                except ValueError:
+                    pass
             return redirect(next_page)
 
     if flag_set('fflag_feat_front_lsdv_e_297_increase_oss_to_enterprise_adoption_short'):

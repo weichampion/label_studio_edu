@@ -1,0 +1,23 @@
+# Managed by deploy/school/install.sh — single-node Garage for Label Studio.
+# Data has no replica inside Garage: durability comes from the backup disk (see bin/backup.sh).
+
+metadata_dir = "${DATA_ROOT}/garage/meta"
+data_dir = "${DATA_ROOT}/garage/data"
+metadata_snapshots_dir = "${DATA_ROOT}/garage/snapshots"
+
+# SQLite tolerates unclean shutdowns better than LMDB, and a single node has no peer to rebuild from.
+db_engine = "sqlite"
+metadata_fsync = true
+data_fsync = true
+metadata_auto_snapshot_interval = "6h"
+
+replication_factor = 1
+
+# Everything listens on loopback only; nothing is reachable from the network.
+rpc_bind_addr = "127.0.0.1:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "${GARAGE_RPC_SECRET}"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "127.0.0.1:3900"

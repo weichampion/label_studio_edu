@@ -18,6 +18,7 @@ import { when, runInAction } from "mobx";
 import { isAlive } from "mobx-state-tree";
 import { imageCache } from "@humansignal/core";
 import { invalidateAnnotationCache, invalidateDistributionCache } from "@humansignal/core/lib/utils/annotation-cache";
+import { hasProjectFeature } from "@humansignal/core/lib/utils/project-permissions";
 
 const waitForPaint = () =>
   new Promise((resolve) => {
@@ -203,6 +204,11 @@ export class LSFWrapper {
 
     if (this.interfacesModifier) {
       interfaces = this.interfacesModifier(interfaces, this.labelStream);
+    }
+    if (!hasProjectFeature(this.project, "annotate")) {
+      interfaces = interfaces.filter((name) => ![
+        "controls", "submit", "update", "skip", "annotations:add-new", "annotations:delete", "edit-history",
+      ].includes(name));
     }
 
     if (!this.shouldLoadNext()) {
@@ -1160,6 +1166,9 @@ export class LSFWrapper {
   _selectAnnotationTimeout = null;
   _debouncedFirstOldSelection = undefined;
   onSelectAnnotation = (prevAnnotation, nextAnnotation, options) => {
+    if (!hasProjectFeature(this.project, "annotate")) {
+      prevAnnotation?.setReadonly(true);
+    }
     // NOTE on parameter naming: LSF fires selectAnnotation(newAnnotation, oldAnnotation).
     // Despite the names here, prevAnnotation = the NEWLY selected annotation,
     // nextAnnotation = the PREVIOUSLY selected annotation (before this selection).

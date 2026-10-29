@@ -51,6 +51,8 @@ const TemplatesInGroup = ({ templates, group, onSelectRecipe, isEdition }) => {
 export const TemplatesList = ({ selectedGroup, selectedRecipe, onCustomTemplate, onSelectGroup, onSelectRecipe }) => {
   const [groups, setGroups] = React.useState([]);
   const [templates, setTemplates] = React.useState();
+  // School edition: false when the teacher did not allow this student to write custom configs
+  const [customAllowed, setCustomAllowed] = React.useState(true);
   const api = useAPI();
   const isEdition = window?.APP_SETTINGS?.version_edition;
 
@@ -63,11 +65,12 @@ export const TemplatesList = ({ selectedGroup, selectedRecipe, onCustomTemplate,
 
       setTemplates(templates);
       setGroups(groups);
+      setCustomAllowed(res.school_custom_template !== false);
     };
     fetchData();
   }, []);
 
-  const selected = selectedGroup || groups[0];
+  const selected = groups.includes(selectedGroup) ? selectedGroup : groups[0];
 
   return (
     <div className={listClass}>
@@ -90,20 +93,25 @@ export const TemplatesList = ({ selectedGroup, selectedRecipe, onCustomTemplate,
             </li>
           ))}
         </ul>
-        <Button
-          type="button"
-          align="left"
-          look="string"
-          size="small"
-          onClick={onCustomTemplate}
-          className="w-full"
-          aria-label="Create custom template"
-        >
-          Custom template
-        </Button>
+        {customAllowed && (
+          <Button
+            type="button"
+            align="left"
+            look="string"
+            size="small"
+            onClick={onCustomTemplate}
+            className="w-full"
+            aria-label="Create custom template"
+          >
+            Custom template
+          </Button>
+        )}
       </aside>
       <main>
         {!templates && <Spinner style={{ width: "100%", height: 200 }} />}
+        {templates && groups.length === 0 && !customAllowed && (
+          <p className="p-4">教师尚未授权你使用任何模板分类，请联系负责教师。</p>
+        )}
         <TemplatesInGroup
           templates={templates || []}
           group={selected}

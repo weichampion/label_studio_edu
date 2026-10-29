@@ -27,11 +27,17 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, OpenApiResponse, extend_schema
 from label_studio_sdk.label_interface.interface import LabelInterface
 from ml.serializers import MLBackendSerializer
-from orgext.queue import filter_assigned
 from projects.functions.next_task import get_next_task
 from projects.functions.stream_history import get_label_stream_history
 from projects.functions.utils import recalculate_created_annotations_and_labels_from_scratch
-from projects.models import Project, ProjectImport, ProjectManager, ProjectReimport, ProjectSummary
+from projects.models import (
+    Project,
+    ProjectImport,
+    ProjectManager,
+    ProjectReimport,
+    ProjectSummary,
+    scope_projects_for_user,
+)
 from projects.serializers import (
     GetFieldsSerializer,
     ProjectCountsSerializer,
@@ -177,9 +183,9 @@ class ProjectListAPI(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         fields = serializer.validated_data.get('include')
         filter = serializer.validated_data.get('filter')
-        projects = Project.objects.filter(organization=self.request.user.active_organization).order_by(
-            F('pinned_at').desc(nulls_last=True), '-created_at'
-        )
+        projects = scope_projects_for_user(
+            Project.objects.filter(organization=self.request.user.active_organization), self.request.user
+        ).order_by(F('pinned_at').desc(nulls_last=True), '-created_at')
         if filter in ['pinned_only', 'exclude_pinned']:
             projects = projects.filter(pinned_at__isnull=filter == 'exclude_pinned')
         projects = ProjectManager.with_counts_annotate(projects, fields=fields)
@@ -244,8 +250,9 @@ class ProjectCountsListAPI(generics.ListAPIView):
         serializer = GetFieldsSerializer(data=self.request.query_params)
         serializer.is_valid(raise_exception=True)
         fields = serializer.validated_data.get('include')
-        projects = Project.objects.with_counts(fields=fields).filter(
-            organization=self.request.user.active_organization
+        projects = scope_projects_for_user(
+            Project.objects.with_counts(fields=fields).filter(organization=self.request.user.active_organization),
+            self.request.user,
         )
 
         # Only annotate FSM state for UI/API consumption when both feature flags are enabled
@@ -378,8 +385,9 @@ class ProjectAPI(generics.RetrieveUpdateDestroyAPIView):
         serializer = GetFieldsSerializer(data=self.request.query_params)
         serializer.is_valid(raise_exception=True)
         fields = serializer.validated_data.get('include')
-        projects = Project.objects.with_counts(fields=fields).filter(
-            organization=self.request.user.active_organization
+        projects = scope_projects_for_user(
+            Project.objects.with_counts(fields=fields).filter(organization=self.request.user.active_organization),
+            self.request.user,
         )
 
         # Only annotate FSM state for UI/API consumption when both feature flags are enabled
@@ -448,11 +456,7 @@ class ProjectNextTaskAPI(generics.RetrieveAPIView):
         dm_queue = filters_ordering_selected_items_exist(request.data)
         prepared_tasks = get_prepared_queryset(request, project)
 
-        # orgext: 手动分配模式下仅取派给当前用户的任务（技术方案 §5.2）
-        prepared_tasks, assigned_flag = filter_assigned(prepared_tasks, request.user, project)
-        next_task, queue_info = get_next_task(
-            request.user, prepared_tasks, project, dm_queue, assigned_flag=assigned_flag
-        )
+        next_task, queue_info = get_next_task(request.user, prepared_tasks, project, dm_queue, assigned_flag=False)
 
         if next_task is None:
             raise NotFound(f'There are no tasks for {request.user}')
@@ -816,7 +820,11 @@ class TemplateListAPI(generics.ListAPIView):
     templates_and_groups = read_templates_and_groups()
 
     def list(self, request, *args, **kwargs):
-        return Response(self.templates_and_groups)
+        data = self.templates_and_groups
+        # SCHOOL-TENANCY: optional hook to limit the template groups a user may pick from
+        if getattr(settings, 'TEMPLATE_LIST_SCOPE', None):
+            data = load_func(settings.TEMPLATE_LIST_SCOPE)(data, request)
+        return Response(data)
 
 
 @extend_schema(exclude=True)

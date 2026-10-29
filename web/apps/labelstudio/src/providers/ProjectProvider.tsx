@@ -1,5 +1,6 @@
 import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useHistory } from "react-router";
 import { shallowEqualObjects } from "shallow-equal";
 import { addVisitedProject } from "@humansignal/core";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
@@ -31,6 +32,7 @@ type UpdateProjectOptions = {
 
 export const ProjectProvider: React.FunctionComponent = ({ children }) => {
   const api = useAPI();
+  const history = useHistory();
   const params = useParams();
   const { user } = useAuth();
   const { update: updateStore } = useAppStore();
@@ -59,6 +61,13 @@ export const ProjectProvider: React.FunctionComponent = ({ children }) => {
       });
 
       const projectInfo = result as unknown as APIProject;
+
+      if (!projectInfo?.id) {
+        // Inaccessible or missing project (e.g. a student opening a project that is not assigned to them):
+        // the API error is already shown, so leave the broken page instead of rendering it without data.
+        history.replace("/projects");
+        return;
+      }
 
       if (shallowEqualObjects(projectData, projectInfo) === false) {
         setProjectData(projectInfo);

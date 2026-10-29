@@ -1,7 +1,7 @@
 import { Button, buttonVariant, ToastContext, ToastType } from "@humansignal/ui";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { generatePath, useHistory } from "react-router";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, Redirect } from "react-router-dom";
 import { Spinner } from "../../components";
 import { modal } from "../../components/Modal/Modal";
 import { Space } from "../../components/Space/Space";
@@ -14,7 +14,7 @@ import { isDefined } from "../../utils/helpers";
 import { ImportModal } from "../CreateProject/Import/ImportModal";
 import { ExportPage } from "../ExportPage/ExportPage";
 import { APIConfig } from "./api-config";
-import { registerAssignmentActions } from "./AssignmentActions";
+import { canManageProject, hasProjectFeature } from "@humansignal/core/lib/utils/project-permissions";
 
 import "./DataManager.prefix.css";
 
@@ -38,8 +38,9 @@ const initializeDataManager = async (root, props, params) => {
     showPreviews: false,
     apiEndpoints: APIConfig.endpoints,
     interfaces: {
-      import: true,
-      export: true,
+      import: hasProjectFeature(params.project, "import_tasks"),
+      export: hasProjectFeature(params.project, "export_data"),
+      labelButton: hasProjectFeature(params.project, "annotate"),
       backButton: false,
       labelingHeader: false,
       autoAnnotation: params.autoAnnotation,
@@ -90,7 +91,7 @@ export const DataManagerPage = ({ ...props }) => {
       (await initializeDataManager(root.current, props, {
         ...params,
         project,
-        autoAnnotation: isDefined(interactiveBacked),
+        autoAnnotation: canManageProject(project) && isDefined(interactiveBacked),
       })));
 
     Object.assign(window, { dataManager });
@@ -192,36 +193,6 @@ export const DataManagerPage = ({ ...props }) => {
       });
     }
 
-    // Register assignment actions for manual assignment mode
-    if (project.assignment_mode === "manual") {
-      try {
-        let memberOptions = [];
-        if (project.workspace) {
-          // 项目归属学院：只能把任务分配到本学院成员
-          const membersRes = await api.callApi("workspaceMembers", {
-            params: { pk: project.workspace, page_size: 999 },
-          });
-          const list = membersRes?.results ?? membersRes ?? [];
-          memberOptions = list.map((m) => ({
-            id: m.user,
-            email: m.user_email,
-            name: m.user_name || m.user_email,
-          }));
-        } else {
-          const membershipsRes = await api.callApi("memberships", { params: { pk: 1, page_size: 999 } });
-          const list = membershipsRes?.results ?? [];
-          memberOptions = list.map((m) => ({
-            id: m.user.id,
-            email: m.user.email,
-            name: [m.user.first_name, m.user.last_name].filter(Boolean).join(" ") || m.user.email,
-          }));
-        }
-        registerAssignmentActions(dataManager, api, project, memberOptions);
-      } catch (e) {
-        // Assignment actions are optional, don't block DM init
-      }
-    }
-
     setContextProps({ dmRef: dataManager });
   }, [projectId]);
 
@@ -265,16 +236,35 @@ export const DataManagerPage = ({ ...props }) => {
 };
 
 DataManagerPage.path = "/data";
+
+// Direct links to /data/export or /data/import must not open pages the teacher has not granted.
+const withProjectFeature = (Page, feature) => {
+  const Guarded = (props) => {
+    const { project } = useProject();
+
+    if (!project?.id) return null;
+    if (!hasProjectFeature(project, feature)) return <Redirect to={`/projects/${project.id}/data`} />;
+    return <Page {...props} />;
+  };
+
+  Guarded.path = Page.path;
+  Guarded.modal = Page.modal;
+  return Guarded;
+};
+
 DataManagerPage.pages = {
-  ExportPage,
-  ImportModal,
+  ExportPage: withProjectFeature(ExportPage, "export_data"),
+  ImportModal: withProjectFeature(ImportModal, "import_tasks"),
 };
 DataManagerPage.context = ({ dmRef }) => {
   const { project } = useProject();
   const [mode, setMode] = useState(dmRef?.mode ?? "explorer");
 
   const links = {
-    "/settings": "Settings",
+    ...(hasProjectFeature(project, "configure_project") ? { "/settings": "Settings" } : {}),
+    ...(!hasProjectFeature(project, "configure_project") && hasProjectFeature(project, "delete_project")
+      ? { "/settings/danger-zone": "Delete Project" }
+      : {}),
   };
 
   const updateCrumbs = (currentMode) => {
@@ -321,6 +311,11 @@ DataManagerPage.context = ({ dmRef }) => {
 
   return project && project.id ? (
     <Space size="small">
+      {project.school_can_manage !== undefined && (
+        <a className={buttonVariant({ size: "small", look: "outlined" })} href="/school/" data-external>
+          {canManageProject(project) ? "学生功能授权" : "我的功能权限"}
+        </a>
+      )}
       {project.expert_instruction && mode !== "explorer" && (
         <Button
           size="small"

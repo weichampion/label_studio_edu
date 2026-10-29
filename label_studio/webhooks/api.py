@@ -1,5 +1,6 @@
 import django_filters
 from core.permissions import ViewClassPermission, all_permissions
+from django.conf import settings
 from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
@@ -13,6 +14,17 @@ from rest_framework.views import APIView
 
 from .models import Webhook, WebhookAction
 from .serializers import WebhookSerializer, WebhookSerializerForUpdate
+
+
+def webhooks_for_user(user):
+    queryset = Webhook.objects.filter(organization=user.active_organization)
+    if 'school_tenancy' in settings.INSTALLED_APPS:
+        from school_tenancy.access import active_role
+        from school_tenancy.models import Role
+
+        if active_role(user) != Role.COLLEGE_ADMIN:
+            queryset = queryset.filter(project__in=project_models.Project.objects.for_user(user))
+    return queryset
 
 
 class WebhookFilterSet(django_filters.FilterSet):
@@ -67,7 +79,7 @@ class WebhookListAPI(generics.ListCreateAPIView):
     )
 
     def get_queryset(self):
-        return Webhook.objects.filter(organization=self.request.user.active_organization)
+        return webhooks_for_user(self.request.user)
 
     def perform_create(self, serializer):
         project = serializer.validated_data.get('project')
@@ -141,7 +153,7 @@ class WebhookAPI(generics.RetrieveUpdateDestroyAPIView):
         return super().get_serializer_class()
 
     def get_queryset(self):
-        return Webhook.objects.filter(organization=self.request.user.active_organization)
+        return webhooks_for_user(self.request.user)
 
 
 @method_decorator(
