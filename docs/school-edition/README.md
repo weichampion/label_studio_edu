@@ -1,0 +1,9 @@
+# 学校多租户版文档
+
+- [架构文档](ARCHITECTURE.md)：系统定位、租户模型、权限矩阵、请求流程、数据模型、接口、前端、已知限制。
+- [部署向导](DEPLOYMENT.md)：当前 8094 演示环境、本地部署、生产目标架构、环境变量、备份升级、故障排查。
+
+相关文档：
+
+- [school_tenancy 模块说明](../../label_studio/school_tenancy/README.md)
+- [deploy/school 部署脚本说明](../../deploy/school/README.md)
