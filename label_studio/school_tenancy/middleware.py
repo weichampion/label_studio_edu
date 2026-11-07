@@ -25,7 +25,14 @@ class TenantMiddleware:
         user = getattr(request, 'user', None)
         if user is not None and user.is_authenticated and ensure_active_college(user) is None:
             path = request.path
-            exempt = path.startswith(EXEMPT_PREFIXES) or (user.is_superuser and path.startswith('/admin/'))
+            exempt = path.startswith(EXEMPT_PREFIXES) or (
+                user.is_superuser
+                and (
+                    path.startswith('/admin/')
+                    or path.startswith('/school/')
+                    or path.startswith('/api/current-user/')
+                )
+            )
             if not exempt:
                 if path.startswith('/api/'):
                     return JsonResponse({'detail': '当前账号未加入任何学院，请联系学院管理员。'}, status=403)

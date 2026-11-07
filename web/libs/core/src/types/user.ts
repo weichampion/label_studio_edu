@@ -1,7 +1,7 @@
 import type { Ability } from "../providers/AuthProvider";
 
 export type APIUser = {
-  school_role?: "college_admin" | "teacher" | "student" | null;
+  school_role?: "college_admin" | "teacher" | "student" | "system_admin" | null;
   id: number;
   first_name: string;
   last_name: string;

@@ -1,22 +1,25 @@
+import json
 import re
 
 from core.middleware import enforce_csrf_checks
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db.models import F, Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from organizations.models import OrganizationMember
+from organizations.models import Organization, OrganizationMember
 from projects.models import Project, ProjectMember
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from school_tenancy import access, services, template_groups
+from school_tenancy.permissions import VIEW_ALL_ANNOTATIONS
 from school_tenancy.models import (
     ANNOTATION_MODULES,
     MANAGER_ROLES,
@@ -25,6 +28,7 @@ from school_tenancy.models import (
     Role,
     StudentCreatePermission,
 )
+from tasks.models import Annotation
 from users.models import User
 
 EMAIL_SPLIT = re.compile(r'[\s,;，；]+')
@@ -105,10 +109,93 @@ def _create_grant_rows(org_id):
 
 
 @login_required
+def all_annotations(request):
+    """College-wide annotation data. College admins see their college; superusers see every college."""
+    user = request.user
+    if not user.has_perm(VIEW_ALL_ANNOTATIONS):
+        raise PermissionDenied
+
+    queryset = access.scope_all_annotations(user)
+    college_id = request.GET.get('college') or ''
+    project_id = request.GET.get('project') or ''
+    annotator = (request.GET.get('annotator') or '').strip()
+    if user.is_superuser and college_id:
+        queryset = queryset.filter(project__organization_id=college_id)
+    if project_id:
+        queryset = queryset.filter(project_id=project_id)
+    if annotator:
+        queryset = queryset.filter(
+            Q(completed_by__email__icontains=annotator) | Q(completed_by__username__icontains=annotator)
+        )
+    queryset = queryset.select_related('project', 'project__organization', 'task', 'completed_by').order_by('-id')
+    total = queryset.count()
+    page_obj = Paginator(queryset, 100).get_page(request.GET.get('page'))
+
+    rows = [
+        {
+            'id': annotation.id,
+            'project': annotation.project,
+            'task_id': annotation.task_id,
+            'annotator': annotation.completed_by,
+            'created_at': annotation.created_at,
+            'updated_at': annotation.updated_at,
+            'result': json.dumps(annotation.result or [], ensure_ascii=False),
+        }
+        for annotation in page_obj
+    ]
+
+    if request.GET.get('format') == 'json':
+        return JsonResponse(
+            {
+                'count': total,
+                'page': page_obj.number,
+                'pages': page_obj.paginator.num_pages,
+                'results': [
+                    {
+                        'id': row['id'],
+                        'project': row['project'].id,
+                        'project_title': row['project'].title,
+                        'organization': row['project'].organization_id,
+                        'organization_title': row['project'].organization.title,
+                        'task': row['task_id'],
+                        'annotator': row['annotator'].email if row['annotator'] else None,
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None,
+                        'result': json.loads(row['result']),
+                    }
+                    for row in rows
+                ],
+            }
+        )
+
+    params = request.GET.copy()
+    params.pop('page', None)
+    params.pop('format', None)
+    context = {
+        'rows': rows,
+        'total': total,
+        'page_obj': page_obj,
+        'query': params.urlencode(),
+        'is_system_admin': user.is_superuser,
+        'college_id': college_id,
+        'project_id': project_id,
+        'annotator': annotator,
+        'colleges': (
+            Organization.objects.filter(college__isnull=False).select_related('college').order_by('title')
+            if user.is_superuser
+            else []
+        ),
+    }
+    return render(request, 'school_tenancy/all_annotations.html', context)
+
+
+@login_required
 def workbench(request):
     user = request.user
-    summary = college_summary(user)
     org_id = access.ensure_active_college(user)
+    if org_id is None and user.is_superuser:
+        return redirect('school_tenancy:all-annotations')
+    summary = college_summary(user)
     role = access.role_in(user, org_id)
     college = College.objects.select_related('organization').get(organization_id=org_id)
     context = {'summary': summary, 'college': college, 'role': role, 'role_label': Role(role).label}

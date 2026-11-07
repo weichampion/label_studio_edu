@@ -30,6 +30,8 @@ export enum ABILITY {
   can_view_annotations = "annotations.view",
   can_change_annotations = "annotations.change",
   can_delete_annotations = "annotations.delete",
+  // School-specific: college-wide annotation data page (college admins / system admin)
+  can_view_all_annotations = "annotations.view_all",
 
   // Labels
   can_create_labels = "labels.create",

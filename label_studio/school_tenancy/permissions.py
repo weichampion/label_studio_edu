@@ -25,6 +25,7 @@ from school_tenancy.access import (
 from school_tenancy.models import MANAGER_ROLES, Role
 
 P = all_permissions
+VIEW_ALL_ANNOTATIONS = 'annotations.view_all'
 
 # Students only label the projects they are assigned to; the projects themselves are filtered elsewhere.
 STUDENT_PERMISSIONS = {
@@ -94,7 +95,13 @@ def predicate_for(permission):
 
 def register_role_permissions():
     for _, permission in all_permissions:
-        make_perm(permission, predicate_for(permission), overwrite=True)
+        make_perm(permission, rules.is_superuser | predicate_for(permission), overwrite=True)
+    # School-specific permission: college-wide annotation data. Superusers bypass the college scope.
+    make_perm(
+        VIEW_ALL_ANNOTATIONS,
+        rules.is_superuser | is_college_admin,
+        overwrite=True,
+    )
 
 
 def required_permission(view, request):

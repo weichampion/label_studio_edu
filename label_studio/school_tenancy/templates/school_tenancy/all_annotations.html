@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>所有标注数据</title>
+  <style>
+    body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; margin: 0; background: #f5f6f8; color: #222; }
+    header { background: #1f3a5f; color: #fff; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; }
+    header a { color: #fff; margin-left: 18px; }
+    main { max-width: 1300px; margin: 24px auto; padding: 0 16px; }
+    section { background: #fff; border-radius: 8px; padding: 18px 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    h2 { font-size: 18px; margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+    td.result { max-width: 520px; word-break: break-all; font-family: Consolas, monospace; font-size: 12px; color: #444; }
+    .muted { color: #777; font-size: 13px; }
+    .filters { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 14px; }
+    .filters label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; }
+    input, select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 6px 14px; border: 0; border-radius: 4px; background: #1f6feb; color: #fff; cursor: pointer; }
+    .pagination { margin-top: 14px; display: flex; gap: 12px; align-items: center; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #e8eef7; font-size: 12px; }
+  </style>
+</head>
+<body>
+<header>
+  <div><strong>所有标注数据</strong>{% if is_system_admin %}　系统管理员视图{% else %}　当前学院视图{% endif %}</div>
+  <div>
+    {% if not is_system_admin %}<a href="{% url 'school_tenancy:workbench' %}">返回学院工作台</a>{% endif %}
+    <a href="{% url 'projects:project-index' %}">进入标注平台</a>
+    <a href="{% url 'logout' %}">退出登录</a>
+  </div>
+</header>
+<main>
+  <section>
+    <h2>标注数据（{{ total }} 条）</h2>
+    <p class="muted">
+      {% if is_system_admin %}系统管理员可以查看全部学院；学院管理员只能查看自己学院。{% else %}你只能查看当前学院的标注数据；其他学院不可见。{% endif %}
+    </p>
+    <form class="filters" method="get">
+      {% if is_system_admin %}
+      <label>学院
+        <select name="college">
+          <option value="">全部学院</option>
+          {% for organization in colleges %}
+          <option value="{{ organization.id }}" {% if college_id == organization.id|stringformat:'s' %}selected{% endif %}>{{ organization.title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <label>项目 ID
+        <input type="text" name="project" value="{{ project_id }}" placeholder="例如 12">
+      </label>
+      <label>标注人
+        <input type="text" name="annotator" value="{{ annotator }}" placeholder="邮箱或用户名">
+      </label>
+      <button type="submit">筛选</button>
+      <a href="?format=json{% if query %}&{{ query }}{% endif %}">查看 JSON</a>
+    </form>
+
+    <table>
+      <tr>
+        <th style="width:70px">ID</th>
+        {% if is_system_admin %}<th style="width:130px">学院</th>{% endif %}
+        <th style="width:220px">项目</th>
+        <th style="width:80px">任务</th>
+        <th style="width:200px">标注人</th>
+        <th style="width:150px">创建时间</th>
+        <th>标注结果（预览）</th>
+      </tr>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.id }}</td>
+        {% if is_system_admin %}<td>{{ row.project.organization.title }}</td>{% endif %}
+        <td><a href="/projects/{{ row.project.id }}/data">{{ row.project.title }}</a><div class="muted">#{{ row.project.id }}</div></td>
+        <td>{{ row.task_id }}</td>
+        <td>{% if row.annotator %}{{ row.annotator.email }}{% else %}<span class="muted">-</span>{% endif %}</td>
+        <td>{{ row.created_at|date:"Y-m-d H:i:s" }}</td>
+        <td class="result">{{ row.result|truncatechars:300 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="{% if is_system_admin %}7{% else %}6{% endif %}" class="muted">没有符合条件的标注数据。</td></tr>
+      {% endfor %}
+    </table>
+
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if query %}&{{ query }}{% endif %}">上一页</a>
+      {% endif %}
+      <span class="muted">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 页</span>
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if query %}&{{ query }}{% endif %}">下一页</a>
+      {% endif %}
+    </div>
+  </section>
+</main>
+</body>
+</html>

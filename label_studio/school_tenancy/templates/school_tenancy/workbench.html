@@ -27,7 +27,7 @@
 <body>
 <header>
   <div><strong>学院工作台</strong>　{{ college.organization.title }}（{{ college.code }}）· {{ role_label }}</div>
-  <div>{{ summary.email }}<a href="{% url 'projects:project-index' %}">进入标注平台</a><a href="{% url 'logout' %}">退出登录</a></div>
+  <div>{{ summary.email }}{% if role == 'college_admin' %}<a href="{% url 'school_tenancy:all-annotations' %}">所有标注数据</a>{% endif %}<a href="{% url 'projects:project-index' %}">进入标注平台</a><a href="{% url 'logout' %}">退出登录</a></div>
 </header>
 <main>
   {% for message in messages %}<div class="msg {{ message.tags }}">{{ message }}</div>{% endfor %}

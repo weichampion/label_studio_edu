@@ -49,10 +49,13 @@ powershell -ExecutionPolicy Bypass -File deploy\school\local\run-local.ps1 -Seed
 | 标注（创建/修改自己的标注） | ✓ | ✓（仅负责的项目） | 默认有，可逐项目关闭 |
 | 修改/删除他人的标注和草稿 | ✓ | ✓ | ✗ |
 | 用户列表 `/api/users` | 本学院全部 | 本学院全部（只读） | 仅自己 |
+| 全学院标注数据总览 `/school/annotations/` | ✓（本学院） | ✗ | ✗ |
 | 成员与角色管理、邀请链接 | ✓ | ✗ | ✗ |
 | 其他学院的任何数据 | ✗ | ✗ | ✗ |
 
 - 用户可以属于多个学院，但**一次只在一个学院中工作**。在工作台中切换学院，或调用 `POST /api/school/switch-college/`。
+- **所有标注数据**：学院管理员可以在学院工作台点击“所有标注数据”，或直接访问 `/school/annotations/`，查看本学院全部项目的标注；接口支持 `?format=json`、`project`、`annotator` 筛选。系统管理员（Django superuser）可查看全部学院并额外按 `college` 筛选；教师和学生访问该页面返回 403。对应权限点为 `annotations.view_all`，只授予学院管理员和系统管理员。
+
 - 学院停用、成员被移出后，相应访问立即失效。没有有效学院的账号会被引导到 `/school/no-college/`，API 返回 403。
 - 学院邀请链接（`/user/signup/?token=…`）注册的账号只会成为该学院的学生。
 

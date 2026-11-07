@@ -6,6 +6,7 @@ app_name = 'school_tenancy'
 urlpatterns = [
     path('school/', views.workbench, name='workbench'),
     path('school/no-college/', views.no_college, name='no-college'),
+    path('school/annotations/', views.all_annotations, name='all-annotations'),
     path('school/switch/', views.switch_college, name='switch'),
     path('school/projects/<int:project_id>/students/', views.project_students_add, name='project-students-add'),
     path(

@@ -149,7 +149,7 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
           </div>
           {user?.school_role && (
             <a href="/school/" className={menubarClass.elem("school-link")} data-external>
-              学院工作台
+              {user?.school_role === "system_admin" ? "系统数据" : "学院工作台"}
             </a>
           )}
 

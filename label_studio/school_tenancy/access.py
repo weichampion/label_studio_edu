@@ -103,6 +103,30 @@ def can_access_project(user, project):
     return False
 
 
+def can_view_all_annotations(user):
+    """College administrators see every annotation of their college; superusers see every college."""
+    if not _is_authenticated(user):
+        return False
+    if getattr(user, 'is_superuser', False):
+        return True
+    org_id = ensure_active_college(user)
+    return role_in(user, org_id) == Role.COLLEGE_ADMIN
+
+
+def scope_all_annotations(user):
+    """Annotation queryset for the college-wide annotation data view."""
+    from tasks.models import Annotation
+
+    if not _is_authenticated(user):
+        return Annotation.objects.none()
+    if getattr(user, 'is_superuser', False):
+        return Annotation.objects.all()
+    org_id = ensure_active_college(user)
+    if role_in(user, org_id) == Role.COLLEGE_ADMIN:
+        return Annotation.objects.filter(project__organization_id=org_id)
+    return Annotation.objects.none()
+
+
 def scope_projects(queryset, user):
     """Queryset counterpart of can_access_project (settings.PROJECT_QUERYSET_SCOPE)."""
     org_id = ensure_active_college(user)
