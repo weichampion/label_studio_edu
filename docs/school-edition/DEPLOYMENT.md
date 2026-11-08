@@ -62,6 +62,14 @@ nohup python3 manage.py runserver 0.0.0.0:8094 --noreload \
 | `shared.teacher@demo.edu.cn` | 跨学院教师 |
 | `platform.admin@demo.edu.cn` | 系统管理员（`/admin/`） |
 
+完整账号和当前授权见 [DEMO_ACCOUNTS.md](DEMO_ACCOUNTS.md)。
+
+注意：
+
+- `cs.student1@demo.edu.cn` 当前已被授权 5 个新建项目模板分类，因此会显示 Create。
+- 学院管理员可在 `/school/annotations/` 查看本学院全部标注。
+- 系统管理员 `platform.admin@demo.edu.cn` 可查看全部学院的标注。
+
 ### 1.4 停止 / 日志
 
 ```bash
