@@ -4,6 +4,9 @@
 > 当前代码基线：Label Studio `1.24.0.dev0` + `school_tenancy`
 > 文档日期：2026-11-07
 
+> **单机一天部署请优先使用 [`deploy/school/README.md`](../../deploy/school/README.md)**
+> 该文档是面向学校 Linux 服务器的完整命令向导；本文保留更详细的生产架构和运维说明。
+
 ---
 
 ## 0. 部署状态说明
