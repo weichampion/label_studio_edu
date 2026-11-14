@@ -135,7 +135,7 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
   return (
     <div className={contentClass}>
       {enabled && (
-        <div className={menubarClass.mod({ school: Boolean(user?.school_role) })}>
+        <div className={menubarClass.mod({ school: Boolean(user?.school_role && user.school_role !== "student") })}>
           <Dropdown.Trigger dropdown={menuDropdownRef} closeOnClickOutside={!sidebarPinned}>
             <div className={`${menubarClass.elem("trigger")} main-menu-trigger`}>
               <LSLogo className={`${menubarClass.elem("logo")}`} alt="Label Studio Logo" />
@@ -147,7 +147,7 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
             <LeftContextMenu className={contextItem.mod({ left: true }).toClassName()} />
             <RightContextMenu className={contextItem.mod({ right: true }).toClassName()} />
           </div>
-          {user?.school_role && (
+          {user?.school_role && user.school_role !== "student" && (
             <a href="/school/" className={menubarClass.elem("school-link")} data-external>
               {user?.school_role === "system_admin" ? "系统数据" : "学院工作台"}
             </a>
