@@ -278,6 +278,10 @@ sudo -u labelstudio /opt/label-studio/venv/bin/pip install .
 sudo -u labelstudio /opt/label-studio/venv/bin/python -c "import django; print(django.get_version())"
 ```
 
+> 如果直接源码运行而没有执行 `pip install -e`，请设置
+> `PYTHONPATH=/opt/label-studio/src`，否则 `annotation_templates` 可能读取到机器上旧版
+> label-studio 包，导致 3D 点云模板不显示。
+
 ---
 
 ## 6. 构建前端
