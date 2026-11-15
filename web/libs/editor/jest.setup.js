@@ -1,4 +1,9 @@
 /* istanbul ignore file */
+const { TextEncoder, TextDecoder } = require("util");
+
+// JSDOM does not expose TextEncoder/TextDecoder; PointCloud loaders use them.
+if (!global.TextEncoder) global.TextEncoder = TextEncoder;
+if (!global.TextDecoder) global.TextDecoder = TextDecoder;
 require("jest-fetch-mock").enableMocks();
 require("@testing-library/jest-dom");
 

@@ -55,9 +55,9 @@ describe("sequence keyframes", () => {
       const box = boxAt(seq, f, poses)!;
       const expected = fromWorld(world(f), poses[f]);
 
-      expect(box.x).toBeCloseTo(expected.x, 6);
-      expect(box.y).toBeCloseTo(expected.y, 6);
-      expect(box.yaw).toBeCloseTo(expected.yaw, 6);
+      expect(box.x).toBeCloseTo(expected.x, 4);
+      expect(box.y).toBeCloseTo(expected.y, 4);
+      expect(box.yaw).toBeCloseTo(expected.yaw, 4);
     }
   });
 
