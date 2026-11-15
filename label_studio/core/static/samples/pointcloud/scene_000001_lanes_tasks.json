@@ -1,0 +1,133 @@
+[
+  {
+    "data": {
+      "pointcloud": "/static/samples/pointcloud/scene_000001.pcd"
+    },
+    "predictions": [
+      {
+        "model_version": "synthetic-ground-truth",
+        "score": 1.0,
+        "result": [
+          {
+            "id": "lane0",
+            "from_name": "lane",
+            "to_name": "pcd",
+            "type": "polyline3d",
+            "value": {
+              "points": [
+                [
+                  3.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  13.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  23.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  33.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  43.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  53.0,
+                  1.75,
+                  -1.73
+                ],
+                [
+                  63.0,
+                  1.75,
+                  -1.73
+                ]
+              ],
+              "labels": [
+                "Dashed"
+              ]
+            }
+          },
+          {
+            "id": "lane0",
+            "from_name": "color",
+            "to_name": "pcd",
+            "type": "choices",
+            "value": {
+              "choices": [
+                "White"
+              ]
+            }
+          },
+          {
+            "id": "lane1",
+            "from_name": "lane",
+            "to_name": "pcd",
+            "type": "polyline3d",
+            "value": {
+              "points": [
+                [
+                  3.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  13.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  23.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  33.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  43.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  53.0,
+                  -1.75,
+                  -1.73
+                ],
+                [
+                  63.0,
+                  -1.75,
+                  -1.73
+                ]
+              ],
+              "labels": [
+                "Dashed"
+              ]
+            }
+          },
+          {
+            "id": "lane1",
+            "from_name": "color",
+            "to_name": "pcd",
+            "type": "choices",
+            "value": {
+              "choices": [
+                "White"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

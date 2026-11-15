@@ -67,6 +67,7 @@ const Model = types.model({
     "pointcloud",
     "cuboid",
     "pointlabels",
+    "polyline3d",
   ]),
 });
 

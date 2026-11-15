@@ -112,6 +112,14 @@ const NodeViews: Record<string, NodeViewProps> = {
     },
   },
 
+  Polyline3DRegionModel: {
+    name: "Polyline",
+    icon: IconPolygonTool,
+    getContent: (node: any) => (
+      <span style={{ color: "#5a5a5a" }}>{`${node.points?.length ?? 0} points, ${(node.length ?? 0).toFixed(1)} m`}</span>
+    ),
+  },
+
   CuboidRegionModel: {
     name: "Cuboid",
     icon: IconBoundingBox,

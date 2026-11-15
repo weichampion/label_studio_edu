@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import { pointIndicesInBox } from "./geometry";
+import { closestSegment } from "./lanes";
 import { indicesInCircle, indicesInPolygon, projectToScreen } from "./segmentation";
 
 /**
@@ -12,7 +13,9 @@ import { indicesInCircle, indicesInPolygon, projectToScreen } from "./segmentati
  *  - "bev": orthographic bird's-eye view, +x (forward) pointing up the screen. Boxes are drawn here.
  *
  * Tools: "select", "draw" (boxes, BEV only), "brush" and "lasso" (point labels, both views; the left button
- * paints, the right button pans, the wheel zooms, the middle button orbits the 3D view).
+ * paints, the right button pans, the wheel zooms, the middle button orbits the 3D view), "polyline" (click to add
+ * lane vertices, double-click to finish). In "select", the vertices of the selected polyline can be dragged,
+ * its midpoint handles dragged to insert a vertex, and a vertex Alt-clicked to remove it.
  */
 
 // Canvas colors cannot use CSS variables; point clouds are conventionally shown on a dark background.
@@ -22,6 +25,10 @@ const HIGHLIGHT = new THREE.Color(1, 1, 1);
 const DRAG_THRESHOLD_PX = 4;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const PAINT_TOOLS = ["brush", "lasso"];
+// tools where the left button belongs to the tool instead of the camera
+const LEFT_BUTTON_TOOLS = [...PAINT_TOOLS, "polyline"];
+const PICK_RADIUS_PX = 8;
+const DOUBLE_CLICK_MS = 350;
 
 /** Point colors with the segmentation on top: labeled points take their class color, the rest is dimmed. */
 export function segmentedColors(raw, labels, palette) {
@@ -240,6 +247,44 @@ export class Viewer3D {
     });
     this.overlayPoints = null;
 
+    // polylines: id -> {line, points}; handles of the selected one; the line being drawn
+    this.polylines = new Map();
+    this.selectedLine = null;
+    this.lineMaterialCache = new Map();
+    this.vertexMaterial = new THREE.PointsMaterial({ size: 9, vertexColors: true, sizeAttenuation: false, depthTest: false });
+    this.midMaterial = new THREE.PointsMaterial({
+      size: 6,
+      color: 0xffffff,
+      sizeAttenuation: false,
+      depthTest: false,
+      transparent: true,
+      opacity: 0.55,
+    });
+    this.vertexPoints = new THREE.Points(new THREE.BufferGeometry(), this.vertexMaterial);
+    this.midPoints = new THREE.Points(new THREE.BufferGeometry(), this.midMaterial);
+    this.vertexPoints.renderOrder = 12;
+    this.midPoints.renderOrder = 11;
+    this.vertexPoints.frustumCulled = false;
+    this.midPoints.frustumCulled = false;
+    this.scene.add(this.vertexPoints, this.midPoints);
+    this.draft = [];
+    this.draftHover = null;
+    this.draftLine = new THREE.Line(
+      new THREE.BufferGeometry(),
+      new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.6, gapSize: 0.3, depthTest: false }),
+    );
+    this.draftLine.renderOrder = 12;
+    this.draftLine.frustumCulled = false;
+    this.draftVertices = new THREE.Points(
+      new THREE.BufferGeometry(),
+      new THREE.PointsMaterial({ size: 7, color: 0xffffff, sizeAttenuation: false, depthTest: false }),
+    );
+    this.draftVertices.renderOrder = 12;
+    this.draftVertices.frustumCulled = false;
+    this.scene.add(this.draftLine, this.draftVertices);
+    this.lastLineClick = null;
+    this.selectedVertex = null;
+
     this.unitEdges = unitBoxEdges();
     this.unitBox = new THREE.BoxGeometry(1, 1, 1);
 
@@ -338,13 +383,18 @@ export class Viewer3D {
     this.tool = tool;
     this.applyToolButtons();
     this.renderer.domElement.style.cursor =
-      tool === "draw" || tool === "lasso" ? "crosshair" : tool === "brush" ? "none" : "default";
+      tool === "draw" || tool === "lasso" || tool === "polyline" ? "crosshair" : tool === "brush" ? "none" : "default";
+    if (tool !== "polyline") {
+      this.draftHover = null;
+      this.updateDraft();
+    }
+    this.updateHandles(this.selectedVertex);
     if (tool !== "brush") this.brushCircle.style.display = "none";
   }
 
   applyToolButtons() {
     // in draw / paint modes the left button draws; panning stays on the right button and zoom on the wheel
-    const painting = PAINT_TOOLS.includes(this.tool);
+    const painting = LEFT_BUTTON_TOOLS.includes(this.tool);
 
     this.bevControls.mouseButtons = {
       LEFT: this.tool === "draw" || painting ? -1 : THREE.MOUSE.PAN,
@@ -549,6 +599,177 @@ export class Viewer3D {
     this.requestRender();
   }
 
+  /* ---------------------------------------------------------------------------------------------- */
+  /* polylines                                                                                       */
+  /* ---------------------------------------------------------------------------------------------- */
+
+  lineMaterial(color) {
+    let material = this.lineMaterialCache.get(color);
+
+    if (!material) {
+      const c = new THREE.Color();
+
+      try {
+        c.setStyle(color || "#ffffff");
+      } catch {
+        c.set(0xffffff);
+      }
+      material = new THREE.LineBasicMaterial({ color: c, depthTest: false, transparent: true });
+      this.lineMaterialCache.set(color, material);
+    }
+    return material;
+  }
+
+  /**
+   * @param {{id:string, points:number[][], color:string, selected:boolean, hidden:boolean}[]} items
+   * @param {number|null} selectedVertex vertex of the selected polyline to highlight
+   */
+  syncPolylines(items, selectedVertex = null) {
+    const seen = new Set();
+
+    this.selectedVertex = selectedVertex;
+    this.selectedLine = null;
+    for (const item of items) {
+      seen.add(item.id);
+      let entry = this.polylines.get(item.id);
+
+      if (!entry) {
+        const line = new THREE.Line(new THREE.BufferGeometry(), this.lineMaterial(item.color));
+
+        line.renderOrder = 6;
+        line.frustumCulled = false;
+        this.scene.add(line);
+        entry = { line, points: [] };
+        this.polylines.set(item.id, entry);
+      }
+      entry.points = item.points;
+      entry.hidden = item.hidden;
+      entry.line.geometry.setAttribute("position", new THREE.Float32BufferAttribute(item.points.flat(), 3));
+      entry.line.geometry.computeBoundingSphere();
+      entry.line.material = this.lineMaterial(item.selected ? "#ffffff" : item.color);
+      entry.line.visible = !item.hidden;
+      if (item.selected && !item.hidden) this.selectedLine = { id: item.id, points: item.points, color: item.color };
+    }
+    for (const [id, entry] of this.polylines) {
+      if (!seen.has(id)) {
+        this.scene.remove(entry.line);
+        entry.line.geometry.dispose();
+        this.polylines.delete(id);
+      }
+    }
+    this.updateHandles(selectedVertex);
+    this.requestRender();
+  }
+
+  /** Vertex and midpoint handles of the selected polyline. */
+  updateHandles(selectedVertex = null) {
+    const line = this.selectedLine;
+    const points = line?.points ?? [];
+    const colors = [];
+    const accent = new THREE.Color();
+
+    try {
+      accent.setStyle(line?.color || "#ffffff");
+    } catch {
+      accent.set(0xffffff);
+    }
+    for (let i = 0; i < points.length; i++) {
+      const c = i === selectedVertex ? accent : HIGHLIGHT;
+
+      colors.push(c.r, c.g, c.b);
+    }
+    this.vertexPoints.geometry.setAttribute("position", new THREE.Float32BufferAttribute(points.flat(), 3));
+    this.vertexPoints.geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    const mids = [];
+
+    for (let i = 1; i < points.length; i++) {
+      mids.push(
+        (points[i - 1][0] + points[i][0]) / 2,
+        (points[i - 1][1] + points[i][1]) / 2,
+        (points[i - 1][2] + points[i][2]) / 2,
+      );
+    }
+    this.midPoints.geometry.setAttribute("position", new THREE.Float32BufferAttribute(mids, 3));
+    this.vertexPoints.visible = points.length > 0;
+    this.midPoints.visible = mids.length > 0 && this.tool === "select";
+    this.requestRender();
+  }
+
+  /** Vertices of the line being drawn (frame on screen); the hover position extends it while drawing. */
+  setDraft(points) {
+    this.draft = points ?? [];
+    this.updateDraft();
+  }
+
+  updateDraft() {
+    const points = this.draft.length && this.draftHover ? [...this.draft, this.draftHover] : this.draft;
+
+    this.draftLine.geometry.setAttribute("position", new THREE.Float32BufferAttribute(points.flat(), 3));
+    this.draftLine.computeLineDistances();
+    this.draftVertices.geometry.setAttribute("position", new THREE.Float32BufferAttribute(this.draft.flat(), 3));
+    this.draftLine.visible = points.length > 1;
+    this.draftVertices.visible = this.draft.length > 0;
+    this.requestRender();
+  }
+
+  /** Screen positions (CSS px) of 3D points; NaN when behind the camera. */
+  toScreen(points) {
+    const canvas = this.renderer.domElement;
+    const v = new THREE.Vector3();
+
+    this.camera.updateMatrixWorld();
+    return points.map(([x, y, z]) => {
+      v.set(x, y, z).applyMatrix4(this.camera.matrixWorldInverse);
+      if (this.viewMode !== "bev" && v.z >= 0) return [Number.NaN, Number.NaN];
+      v.applyMatrix4(this.camera.projectionMatrix);
+      return [((v.x + 1) / 2) * canvas.clientWidth, ((1 - v.y) / 2) * canvas.clientHeight];
+    });
+  }
+
+  /** Polyline under the pointer (closest segment within a few pixels). */
+  pickPolyline(event) {
+    const [px, py] = this.local(event);
+    let best = null;
+
+    for (const [id, entry] of this.polylines) {
+      if (entry.hidden || entry.points.length < 2) continue;
+      const hit = closestSegment(this.toScreen(entry.points), px, py);
+
+      if (hit.distance <= PICK_RADIUS_PX && (!best || hit.distance < best.distance)) best = { id, distance: hit.distance };
+    }
+    return best?.id ?? null;
+  }
+
+  /** Vertex or midpoint handle of the selected polyline under the pointer. */
+  pickHandle(event) {
+    const line = this.selectedLine;
+
+    if (!line) return null;
+    const [px, py] = this.local(event);
+    const screen = this.toScreen(line.points);
+    let vertex = -1;
+    let best = PICK_RADIUS_PX;
+
+    screen.forEach(([x, y], i) => {
+      const d = Math.hypot(x - px, y - py);
+
+      if (d <= best) {
+        best = d;
+        vertex = i;
+      }
+    });
+    if (vertex >= 0) return { kind: "vertex", index: vertex, z: line.points[vertex][2] };
+    for (let i = 1; i < screen.length; i++) {
+      const mx = (screen[i - 1][0] + screen[i][0]) / 2;
+      const my = (screen[i - 1][1] + screen[i][1]) / 2;
+
+      if (Math.hypot(mx - px, my - py) <= PICK_RADIUS_PX) {
+        return { kind: "mid", index: i, z: (line.points[i - 1][2] + line.points[i][2]) / 2 };
+      }
+    }
+    return null;
+  }
+
   focus(box) {
     if (!box) return;
     const target = new THREE.Vector3(box.x, box.y, box.z);
@@ -614,6 +835,7 @@ export class Viewer3D {
   }
 
   onHover(event) {
+    if (this.tool === "polyline") this.onLineHover(event);
     if (this.tool !== "brush") return;
     const [x, y] = this.local(event);
 
@@ -621,6 +843,14 @@ export class Viewer3D {
     this.brushCircle.setAttribute("cy", String(y));
     this.brushCircle.setAttribute("r", String(this.brushSize));
     this.brushCircle.style.display = "";
+  }
+
+  onLineHover(event) {
+    if (this.tool !== "polyline" || !this.draft.length) return;
+    const p = this.groundPoint(event, this.draft[this.draft.length - 1][2]);
+
+    this.draftHover = p ? [p.x, p.y, this.draft[this.draft.length - 1][2]] : null;
+    this.updateDraft();
   }
 
   onLeave() {
@@ -649,6 +879,30 @@ export class Viewer3D {
     if (event.button !== 0) return;
     const start = { x: event.clientX, y: event.clientY };
 
+    if (this.tool === "polyline") {
+      event.stopImmediatePropagation();
+      this.pointer = { mode: "line", start };
+      return;
+    }
+
+    if (this.tool === "select" && this.selectedLine && this.callbacks.canEditLine?.()) {
+      const handle = this.pickHandle(event);
+
+      if (handle) {
+        event.stopImmediatePropagation();
+        const id = this.selectedLine.id;
+
+        if (handle.kind === "vertex" && (event.altKey || event.metaKey)) {
+          this.callbacks.onVertexRemove?.(id, handle.index);
+          return;
+        }
+        this.controls.enabled = false;
+        this.pointer = { mode: "vertex", start, id, handle, moved: false };
+        if (handle.kind === "vertex") this.callbacks.onVertexSelect?.(id, handle.index);
+        return;
+      }
+    }
+
     if (PAINT_TOOLS.includes(this.tool)) {
       if (!this.cloud) return;
       // OrbitControls listens on the same canvas
@@ -676,7 +930,7 @@ export class Viewer3D {
       return;
     }
 
-    const regionId = this.pickBox(event);
+    const regionId = this.pickBox(event) ?? this.pickPolyline(event);
     const selectedId = this.callbacks.getSelectedId?.();
 
     if (this.viewMode === "bev" && regionId && regionId === selectedId && this.callbacks.canEdit?.()) {
@@ -699,6 +953,25 @@ export class Viewer3D {
     const pointer = this.pointer;
 
     if (!pointer) return;
+    if (pointer.mode === "vertex") {
+      const dist = Math.hypot(event.clientX - pointer.start.x, event.clientY - pointer.start.y);
+
+      if (!pointer.moved && dist < DRAG_THRESHOLD_PX) return;
+      const p = this.groundPoint(event, pointer.handle.z);
+
+      if (!p) return;
+      if (!pointer.moved) {
+        pointer.moved = true;
+        this.callbacks.onVertexDragStart?.(pointer.id);
+        if (pointer.handle.kind === "mid") {
+          // dragging a midpoint inserts a vertex there, then moves it
+          this.callbacks.onVertexInsert?.(pointer.id, pointer.handle.index, p.x, p.y);
+          pointer.handle = { kind: "vertex", index: pointer.handle.index, z: pointer.handle.z };
+        }
+      }
+      this.callbacks.onVertexMove?.(pointer.id, pointer.handle.index, p.x, p.y);
+      return;
+    }
     if (pointer.mode === "brush") {
       const [x, y] = this.local(event);
 
@@ -743,6 +1016,35 @@ export class Viewer3D {
 
     if (pointer.mode === "brush") {
       this.callbacks.onPaintEnd?.();
+      return;
+    }
+    if (pointer.mode === "vertex") {
+      this.controls.enabled = true;
+      if (pointer.moved) this.callbacks.onVertexDragEnd?.(pointer.id);
+      else if (pointer.handle.kind === "mid") {
+        // a click on a midpoint handle inserts a vertex there
+        const p = this.groundPoint(event, pointer.handle.z);
+
+        if (p) this.callbacks.onVertexInsert?.(pointer.id, pointer.handle.index, p.x, p.y);
+      }
+      return;
+    }
+    if (pointer.mode === "line") {
+      if (dist >= DRAG_THRESHOLD_PX) return;
+      const now = performance.now();
+      const last = this.lastLineClick;
+
+      if (last && now - last.time < DOUBLE_CLICK_MS && Math.hypot(event.clientX - last.x, event.clientY - last.y) < 6) {
+        this.lastLineClick = null;
+        this.draftHover = null;
+        this.callbacks.onLineFinish?.();
+        return;
+      }
+      this.lastLineClick = { time: now, x: event.clientX, y: event.clientY };
+      const z = this.draft.length ? this.draft[this.draft.length - 1][2] : this.groundZ;
+      const p = this.groundPoint(event, z);
+
+      if (p) this.callbacks.onLineClick?.(p.x, p.y);
       return;
     }
     if (pointer.mode === "lasso") {
@@ -826,6 +1128,12 @@ export class Viewer3D {
     this.overlayPoints?.geometry.dispose();
     this.overlayMaterial.dispose();
     this.unitEdges.dispose();
+    for (const entry of this.polylines.values()) entry.line.geometry.dispose();
+    for (const material of this.lineMaterialCache.values()) material.dispose();
+    for (const object of [this.vertexPoints, this.midPoints, this.draftLine, this.draftVertices]) {
+      object.geometry.dispose();
+      object.material.dispose();
+    }
     this.unitBox.dispose();
     this.preview.geometry.dispose();
     this.preview.material.dispose();

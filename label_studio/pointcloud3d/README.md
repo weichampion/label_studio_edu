@@ -1,6 +1,6 @@
 # 3D 点云标注模块（户外驾驶 / LiDAR）
 
-在标注平台中新增 **3D 点云 + 3D 框（Cuboid）** 标注，用于自动驾驶等户外场景的 3D 目标检测，以及**点云语义分割**（逐点标类别，见下文）。
+在标注平台中新增 **3D 点云 + 3D 框（Cuboid）** 标注，用于自动驾驶等户外场景的 3D 目标检测，以及**点云语义分割**（逐点标类别）和 **3D 车道线**（3D 折线），见下文。
 模块以原生标签的方式接入 Label Studio 编辑器（与 `<Video>` + `<VideoRectangle>` 的接入方式相同），
 标注结果、草稿、预标注、导出、学院多租户权限都走现有流程，不需要单独的服务。
 
@@ -13,6 +13,7 @@
 | [CVAT 3D](https://github.com/cvat-ai/cvat) | 透视视图 + 三个正交视图的界面布局；PCD / KITTI bin 数据支持 |
 | [three.js PCDLoader](https://github.com/mrdoob/three.js)（MIT） | PCD `binary_compressed`（LZF、按列存储）的解析方式 |
 | [OpenPCDet](https://github.com/open-mmlab/OpenPCDet)、[KITTI](https://www.cvlibs.net/datasets/kitti/) | 坐标系约定和两种导出格式 |
+| [OpenLane](https://github.com/OpenDriveLab/OpenLane)、[Xtreme1](https://github.com/xtreme1-io/xtreme1)、[CVAT 3D](https://github.com/cvat-ai/cvat) | 3D 车道线：在点云上逐点点出折线、顶点贴地、按强度显示路面标线；按车道线逐帧导出的 JSON 结构 |
 | [SemanticKITTI](https://semantic-kitti.org/)、[Xtreme1](https://github.com/xtreme1-io/xtreme1)、[labelCloud](https://github.com/ch-sa/labelCloud) | 语义分割：`.label` 格式和类别配色；画刷 / 套索刷点、按高度过滤、用 3D 框和地面自动填充 |
 
 ## 使用方法
@@ -254,13 +255,14 @@ ML 后端返回同样结构的 prediction 即可作为预标注。
 ### 5. 导出
 
 在 Export 对话框中（或 `GET /api/projects/<id>/export?exportType=...`）新增以下格式。3D 框格式仅对含 `<Cuboid>` 的项目可选，
-`SEMANTIC_KITTI` 仅对含 `<PointLabels>` 的项目可选：
+`SEMANTIC_KITTI` 仅对含 `<PointLabels>` 的项目可选，`LANE3D_JSON` 仅对含 `<Polyline3D>` 的项目可选：
 
 | 格式 | 内容 |
 |---|---|
 | `OPENPCDET_3D` | `labels/<帧名>.txt`，每行 `x y z dx dy dz heading 类别`（LiDAR 坐标），可直接用于 OpenPCDet 自定义数据集 |
 | `KITTI_3D` | `label_2/<帧名>.txt`（相机坐标 15 列，含 2D 框、alpha、遮挡）+ `calib/<帧名>.txt`；使用任务中第一个有标定的相机，没有标定的任务被跳过 |
 | `SEMANTIC_KITTI` | 语义分割：每个已标注的帧一个 `labels/<帧名>.label`，每个点一个小端 uint32（低 16 位为类别 ID，0 为未标注，点序与点云文件相同），另附 `classes.json`（ID → 类别，ID 按配置中的顺序）；未标注的帧记录在 `export_report.json` 中 |
+| `LANE3D_JSON` | 3D 车道线：每个点云一个 `lanes/<帧名>.json`，内容为 `{"lanes": [{"id", "track_id", "category", "attributes", "points": [[x, y, z], ...]}]}`，坐标是该帧的 LiDAR 坐标；连续帧中一条线会经位姿换算写到每一帧，`track_id` 跨帧不变 |
 | `KITTI_TRACKING` | 每个任务一个序列：`label_02/<序列>.txt`（`frame track_id` + KITTI 15 列，插值后逐帧输出）、`calib/<序列>.txt`、有位姿时 `poses/<序列>.txt`；单帧任务视为 1 帧序列 |
 
 连续帧任务导出 `OPENPCDET_3D` / `KITTI_3D` 时，每一帧（按插值结果）输出一个标签文件，帧名取各帧点云文件名；
@@ -327,11 +329,60 @@ KITTI 的遮挡列来自名字包含 `occlu` 的属性（取值开头的数字�
 - `pointlabels` 是用到的类别，用于标签统计和“删除仍在使用的标签”校验。
 - ML 后端返回同样结构的 prediction 即可作为预标注，示例见 `core/static/samples/pointcloud/scene_000001_segmentation_tasks.json`。
 
+## 3D 车道线（3D 折线）
+
+在点云上画车道线、路沿、停止线等 3D 折线，用于 3D 车道线检测和高精地图。模板：“LiDAR Lane Annotation”。配置：
+
+```xml
+<Labels name="lane_type" toName="pcd">
+  <Label value="Dashed"/><Label value="Solid"/><Label value="Road Edge"/>
+</Labels>
+<PointCloud name="pcd" value="$pointcloud" colorMode="intensity"/>
+<Polyline3D name="lane" toName="pcd"/>
+<Choices name="color" toName="pcd" perRegion="true"><Choice value="White"/><Choice value="Yellow"/></Choices>
+```
+
+可以和 `<Cuboid>`、`<PointLabels>` 放在同一个项目里。路面标线的反射强度高，用 `colorMode="intensity"` 显示最清楚。
+
+### 标注方式
+
+1. 选好类型（如 Dashed），按 **J**（或工具栏 “Lane Line”），在俯视图或 3D 视图中沿标线逐点单击。
+   每个点的高度自动取该位置的路面高度（附近点云的低分位数，会排除车辆等高出路面的点）。
+2. 双击或按 Enter 结束这条线；Backspace 删除最后一个点，Esc 放弃这条线。结束后仍在画线工具中，可以接着画下一条。
+3. 修改选中的线（选择工具下）：
+   - 拖动顶点移动，高度跟着路面走。
+   - 拖动线段中点的小圆点即在该处插入一个顶点。
+   - Alt+单击顶点，或选中顶点后按 Delete，删除该顶点；没有选中顶点时 Delete 删除整条线。
+   - 右侧面板可以直接修改选中顶点的 x / y / z。
+4. 右侧面板的辅助按钮：
+   - **Snap to Markings**：利用点云强度（标线比沥青亮得多），把粗略画出的线横向移到标线上。虚线间隙处的点跟随相邻点平移，附近没有标线时不移动。
+     在示例场景上，从偏离 0.2–0.55 m 的位置都能落到标线上 5 cm 以内（标线宽 16 cm）。
+   - **Snap to Ground**：所有顶点重新贴到路面上。
+   - **Reverse Direction**：反转线的方向，约定为沿行驶方向。
+5. 车道线颜色等属性用逐线的 `<Choices perRegion>`，选中线后在区域面板中选择。
+
+### 连续帧
+
+车道线在世界中是静止的，所以一条线只需在某一帧画一次：结果记录画线时的帧（`frame`），坐标存在该帧的 LiDAR 坐标系中，
+其他帧借助自车位姿换算后显示，编辑时也会换算回来。没有位姿时所有帧共用同一坐标系。
+
+### 结果格式
+
+```json
+{
+  "id": "lane0", "from_name": "lane", "to_name": "pcd", "type": "polyline3d",
+  "value": {"points": [[3.0, 1.75, -1.73], [13.0, 1.75, -1.73]], "frame": 0, "labels": ["Dashed"]}
+}
+```
+
+单帧任务没有 `frame` 字段。预标注示例见 `core/static/samples/pointcloud/scene_000001_lanes_tasks.json`。
+
 ## 与学院多租户的集成
 
 - **标注模块权限**：新增模块“3D 点云标注”（`pointcloud`）。教师在“学生功能授权”中可以单独关闭某个学生的 3D 标注；
   关闭后学生看不到点云和 3D 框控件，服务器拒绝提交 `cuboid` 结果（同其他模块）。融合模板中的相机图像属于点云模块。
 - **学生建项目授权**：模板分类中新增“3D Point Cloud（3D 点云/自动驾驶）”，可单独授权。
+- **车道线**：`<Polyline3D>` 同样属于“3D 点云标注”模块；线的类型参与标签统计和“删除仍在使用的标签”校验。
 - **语义分割**：`<PointLabels>` 也属于“3D 点云标注”模块，关闭该模块后服务器拒绝提交 `pointlabels` 结果。
 - **导出**：3D 格式走原有导出接口，“导出数据”（export_data）授权照常生效，跨学院访问照常拒绝。
 
@@ -341,6 +392,7 @@ KITTI 的遮挡列来自名字包含 `occlu` 的属性（取值开头的数字�
 |---|---|
 | `web/libs/editor/src/tags/object/PointCloud/` | `<PointCloud>` 标签：模型、three.js 视图、三视图、相机融合、PCD/BIN 解析、几何计算；`sequence.ts`（关键帧插值、位姿、跟踪器）、`TrackTimeline.jsx`（帧控制与轨迹时间轴）、`attributes.ts` / `AttributePanels.jsx`（逐帧属性与批量修改） |
 | `web/libs/editor/src/tags/control/Cuboid.js`、`FrameAttribute.js` | `<Cuboid>` 控件和 `<FrameAttribute>` 属性声明 |
+| `web/libs/editor/src/tags/control/Polyline3D.js`、`regions/Polyline3DRegion.js`、`tags/object/PointCloud/lanes.ts` | `<Polyline3D>` 控件、3D 折线区域；贴地、拾取、按强度吸附到标线 |
 | `web/libs/editor/src/tags/control/PointLabels.js`、`regions/PointSegmentationRegion.js` | `<PointLabels>` 控件和分割结果（每个点云一个区域） |
 | `web/libs/editor/src/tags/object/PointCloud/segmentation.ts`、`SegmentationPanel.jsx` | 逐点标签的编码、画刷 / 套索选点、地面识别、跨帧传递；分割工具面板 |
 | `web/libs/editor/src/regions/CuboidRegion.js` | 3D 框区域（序列化、移动/旋转/贴合） |
@@ -348,8 +400,8 @@ KITTI 的遮挡列来自名字包含 `occlu` 的属性（取值开头的数字�
 | `label_studio/pointcloud3d/converter.py` | 在 SDK Converter 上增加 3D 格式 |
 | `label_studio/pointcloud3d/api.py`、`urls.py` | 模型跟踪转发接口 |
 | `ml_backends/pointcloud_tracker/` | 参考 ML 后端：检测（聚类 / OpenPCDet）、多目标跟踪、单轨迹延伸、关键帧压缩 |
-| `label_studio/annotation_templates/3d-point-cloud/` | 四个模板（检测、相机融合、连续帧跟踪、语义分割） |
-| `scripts/generate_pointcloud_samples.py` | 生成示例点云（单帧和 8 帧序列及逐帧真值）、分割预标注、相机图和模板缩略图 |
+| `label_studio/annotation_templates/3d-point-cloud/` | 五个模板（检测、相机融合、连续帧跟踪、语义分割、车道线） |
+| `scripts/generate_pointcloud_samples.py` | 生成示例点云（单帧和 8 帧序列及逐帧真值）、分割与车道线预标注、相机图和模板缩略图 |
 
 对上游代码的改动（均标注 `POINTCLOUD-3D` 或为注册表中的一行）：
 
@@ -357,12 +409,12 @@ KITTI 的遮挡列来自名字包含 `occlu` 的属性（取值开头的数字�
 |---|---|
 | `web/package.json`、`web/libs/editor/package.json`、`web/yarn.lock` | 新增依赖 `three@0.170.0` |
 | `web/libs/editor/jest.config.js` | 允许 Jest 转换 three 的 ES 模块 |
-| `editor/src/tags/object/index.js`、`tags/control/index.js`（含 `FrameAttribute`）、`regions/index.js`、`regions/Area.js`、`regions/Result.js` | 注册标签、区域和结果类型 `cuboid`、`pointlabels` |
+| `editor/src/tags/object/index.js`、`tags/control/index.js`（含 `FrameAttribute`）、`regions/index.js`、`regions/Area.js`、`regions/Result.js` | 注册标签、区域和结果类型 `cuboid`、`pointlabels`、`polyline3d` |
 | `editor/src/tags/visual/View.jsx`、`Collapse.jsx`、`tags/object/PagedView.jsx` | 允许新标签作为子元素 |
-| `editor/src/components/Node/Node.tsx` | 大纲中显示 3D 框（尺寸、点数）和分割结果（帧数、类别） |
+| `editor/src/components/Node/Node.tsx` | 大纲中显示 3D 框（尺寸、点数）、分割结果（帧数、类别）和 3D 折线（点数、长度） |
 | `editor/src/tags/control/Label.jsx` | `<Label>` 可以放在 `<PointLabels>` 中 |
 | `web/apps/labelstudio/.../Import/Import.jsx`、`core/settings/base.py` | 允许上传 `.pcd`、`.bin` |
-| `projects/models.py` | `cuboid` 结果中合并的 labels 参与标签统计和“删除仍在使用的标签”校验 |
+| `projects/models.py` | `cuboid`、`polyline3d` 结果中合并的 labels 参与标签统计和“删除仍在使用的标签”校验 |
 | `tasks/validation.py` | `PointCloud` 的任务数据可以是字符串或帧列表 |
 | `core/urls.py` | 挂载 `pointcloud3d.urls`（模型跟踪转发接口） |
 | `data_export/models.py`、`data_export/mixins.py` | 使用 `PointCloudConverter` |
@@ -387,6 +439,6 @@ node node_modules\jest\bin\jest.js --config libs\editor\jest.config.js --runInBa
 ## 尚未实现（后续）
 
 - OpenPCDet 微调尚未在真实 GPU 环境中验证。
-- 实例分割 / 全景分割（`.label` 的高 16 位实例 ID）；分割模型的预标注与训练；3D 折线（车道线）。
+- 实例分割 / 全景分割（`.label` 的高 16 位实例 ID）；分割模型的预标注与训练；车道线的自动检测（目前只有吸附到标线）。
 - 在相机图像上反向调整 3D 框；相机畸变参数。
 - 超大点云（> 数百万点）的分块 / LOD 加载。

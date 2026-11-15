@@ -49,6 +49,24 @@ const SEGMENTATION_SHORTCUTS = [
   ["V", "Show / hide point labels"],
 ];
 
+const LANE_SHORTCUTS = [
+  ["J", "Draw a 3D polyline (lane line); click to add points"],
+  ["Enter / double-click", "Finish the polyline"],
+  ["Backspace", "Remove the last point while drawing"],
+  ["Esc", "Cancel the polyline being drawn"],
+  ["Alt+click", "Remove a vertex of the selected polyline"],
+  ["Delete", "Remove the selected vertex, or the selected polyline"],
+];
+
+const polylineItems = (item) =>
+  item.polylines.map((r) => ({
+    id: r.id,
+    points: r.displayPoints,
+    color: r.getOneColor(),
+    selected: r.selected,
+    hidden: r.hidden,
+  }));
+
 const boxItems = (item) =>
   item.cuboids.map((r) => ({
     id: r.id,
@@ -160,6 +178,90 @@ const TrackControls = observer(({ item, region, editable }) => {
           {item.modelTrackMessage}
         </span>
       )}
+    </div>
+  );
+});
+
+const LanePanel = observer(({ item, region }) => {
+  const editable = !region.isReadOnly();
+  const vertex = item.selectedVertex;
+  const points = region.displayPoints;
+  const selected = vertex !== null && points[vertex] ? points[vertex] : null;
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => setMessage(null), [region.id]);
+  const snap = () => {
+    const snapped = region.snapToMarkings();
+
+    setMessage(
+      snapped < 0
+        ? "This scan has no intensity, so markings can't be found."
+        : snapped
+          ? `${snapped} of ${points.length} points found a marking; the others follow their neighbours.`
+          : "No painted marking found near this line.",
+    );
+  };
+
+  return (
+    <div className={block.elem("panel").toClassName()}>
+      <div className={block.elem("panel-header").toClassName()}>
+        <strong>{region.labelName || "Unlabeled line"}</strong>
+        <span>
+          {points.length} points · {region.length.toFixed(1)} m
+        </span>
+      </div>
+      {item.isSequence && region.frame !== null && (
+        <span className={block.elem("track-state").toClassName()}>
+          Drawn in frame {region.frame + 1}
+          {item.hasPoses ? ", shown in every frame through the ego poses" : ""}
+        </span>
+      )}
+      {selected && (
+        <fieldset className={block.elem("fields").toClassName()} disabled={!editable}>
+          <legend>Point {vertex + 1}</legend>
+          <NumberField label="x" value={selected[0]} step={0.1} onCommit={(x) => region.moveVertex(vertex, x, selected[1])} />
+          <NumberField label="y" value={selected[1]} step={0.1} onCommit={(y) => region.moveVertex(vertex, selected[0], y)} />
+          <NumberField label="z" value={selected[2]} step={0.05} onCommit={(z) => region.setVertexHeight(vertex, z)} />
+        </fieldset>
+      )}
+      {editable && (
+        <div className={block.elem("actions").toClassName()}>
+          <Button
+            size="small"
+            look="outlined"
+            variant="neutral"
+            disabled={!item.cloud?.intensity}
+            onClick={snap}
+            tooltip="Move the points sideways onto the painted marking (uses LiDAR intensity)"
+          >
+            Snap to Markings
+          </Button>
+          <Button size="small" look="outlined" variant="neutral" onClick={() => region.snapToGround()}>
+            Snap to Ground
+          </Button>
+          <Button size="small" look="outlined" variant="neutral" onClick={() => region.reverse()} tooltip="Lines follow the driving direction">
+            Reverse Direction
+          </Button>
+          <Button
+            size="small"
+            look="outlined"
+            variant="neutral"
+            disabled={!selected || points.length <= 2}
+            onClick={() => region.removeVertex(vertex) && item.setSelectedVertex(null)}
+          >
+            Remove Point
+          </Button>
+        </div>
+      )}
+      {message && (
+        <span className={block.elem("track-state").toClassName()} role="status">
+          {message}
+        </span>
+      )}
+      <span className={block.elem("track-state").toClassName()}>
+        Drag a point to move it (its height follows the road), drag a small midpoint handle to add one, Alt-click a
+        point to remove it.
+      </span>
     </div>
   );
 });
@@ -293,7 +395,7 @@ const HtxPointCloudView = ({ item }) => {
   const unfreezeHistory = useCallback(() => item.annotation?.history?.unfreeze(HISTORY_KEY), [item]);
 
   useEffect(() => {
-    const findRegion = (id) => item.cuboids.find((r) => r.id === id);
+    const findRegion = (id) => item.regs.find((r) => r.id === id);
     let viewer;
 
     try {
@@ -305,7 +407,7 @@ const HtxPointCloudView = ({ item }) => {
 
         if (region) {
           if (!region.selected) item.annotation.selectArea(region);
-        } else if (item.selectedCuboid) {
+        } else if (item.selectedCuboid || item.selectedPolyline) {
           item.annotation.unselectAll();
         }
       },
@@ -328,6 +430,20 @@ const HtxPointCloudView = ({ item }) => {
         dragStartRef.current = null;
         unfreezeHistory();
       },
+      canEditLine: () => !!item.selectedPolyline && !item.selectedPolyline.isReadOnly(),
+      onLineClick: (x, y) => item.addDraftPoint(x, y),
+      onLineFinish: () => item.finishDraft(),
+      onVertexSelect: (_, index) => item.setSelectedVertex(index),
+      onVertexRemove: (id, index) => {
+        if (findRegion(id)?.removeVertex(index)) item.setSelectedVertex(null);
+      },
+      onVertexInsert: (id, index, x, y) => {
+        findRegion(id)?.insertVertex(index, x, y);
+        item.setSelectedVertex(index);
+      },
+      onVertexMove: (id, index, x, y) => findRegion(id)?.moveVertex(index, x, y),
+      onVertexDragStart: () => freezeHistory(),
+      onVertexDragEnd: () => unfreezeHistory(),
       onPaintStart: (erase) => item.beginSegStroke(erase),
       onPaint: (indices) => item.paintSeg(indices),
       onPaintEnd: () => item.endSegStroke(),
@@ -393,6 +509,20 @@ const HtxPointCloudView = ({ item }) => {
         { fireImmediately: true },
       ),
       reaction(
+        () => [polylineItems(item), item.selectedVertex],
+        ([items, vertex]) => viewer.syncPolylines(items, vertex),
+        { fireImmediately: true, equals: comparer.structural },
+      ),
+      reaction(
+        () => item.lineDraft,
+        (draft) => viewer.setDraft(draft),
+        { fireImmediately: true },
+      ),
+      reaction(
+        () => item.selectedPolyline?.id ?? null,
+        () => item.setSelectedVertex(null),
+      ),
+      reaction(
         () => item.brushSize,
         (size) => viewer.setBrushSize(size),
         { fireImmediately: true },
@@ -434,6 +564,21 @@ const HtxPointCloudView = ({ item }) => {
       } else {
         item.setOverlay(lastOverlayRef.current);
       }
+    }
+    else if (item.lineDraft && plain && key === "enter") item.finishDraft();
+    else if (item.lineDraft && key === "escape") item.cancelDraft();
+    else if (item.lineDraft && plain && key === "backspace") item.removeDraftPoint();
+    else if (item.polylineControl && plain && key === "j") item.setTool(item.tool === "polyline" ? "select" : "polyline");
+    else if (
+      item.selectedPolyline &&
+      !item.selectedPolyline.isReadOnly() &&
+      plain &&
+      (key === "delete" || key === "backspace")
+    ) {
+      const line = item.selectedPolyline;
+
+      if (item.selectedVertex !== null && line.removeVertex(item.selectedVertex)) item.setSelectedVertex(null);
+      else if (item.selectedVertex === null) line.deleteRegion();
     }
     else if (key === "n" && plain) item.setTool(item.tool === "draw" ? "select" : "draw");
     else if (key === "escape" && item.tool !== "select") item.setTool("select");
@@ -492,6 +637,17 @@ const HtxPointCloudView = ({ item }) => {
           >
             Draw Box
           </Button>
+          {item.polylineControl && (
+            <Button
+              {...toggle(item.tool === "polyline")}
+              aria-pressed={item.tool === "polyline"}
+              disabled={item.isReadOnly()}
+              tooltip="J · click points along a lane line, double-click to finish"
+              onClick={() => item.setTool(item.tool === "polyline" ? "select" : "polyline")}
+            >
+              Lane Line
+            </Button>
+          )}
           {item.segControl && (
             <>
               <Button
@@ -596,6 +752,7 @@ const HtxPointCloudView = ({ item }) => {
               ...SHORTCUTS,
               ...(item.isSequence ? SEQUENCE_SHORTCUTS : []),
               ...(item.segControl ? SEGMENTATION_SHORTCUTS : []),
+              ...(item.polylineControl ? LANE_SHORTCUTS : []),
             ].map(([key, text]) => (
               <div key={key}>
                 <dt>
@@ -626,25 +783,41 @@ const HtxPointCloudView = ({ item }) => {
                   {item.tool === "draw" && " · drag on the ground to draw a box, right-drag to pan"}
                   {item.tool === "brush" && " · drag to paint, Shift erases, right-drag pans"}
                   {item.tool === "lasso" && " · draw an outline around points, Shift erases, right-drag pans"}
+                  {item.tool === "polyline" &&
+                    (item.lineDraft?.length
+                      ? ` · ${item.lineDraft.length} point${item.lineDraft.length === 1 ? "" : "s"}: click to continue, double-click or Enter to finish, Esc to cancel`
+                      : " · click on the road to start a lane line, right-drag to pan")}
                 </>
               )}
             </div>
           </div>
           <aside className={block.elem("side").toClassName()} aria-label="Details">
-            {item.segControl && (item.tool === "brush" || item.tool === "lasso" || !selected) && (
+            {item.segControl && (item.tool === "brush" || item.tool === "lasso" || (!selected && !item.selectedPolyline)) && (
               <SegmentationPanel item={item} />
             )}
-            {item.tool === "brush" || item.tool === "lasso" ? null : selected ? (
+            {item.tool === "brush" || item.tool === "lasso" ? null : item.selectedPolyline ? (
+              <LanePanel item={item} region={item.selectedPolyline} />
+            ) : selected ? (
               <BoxPanel
                 item={item}
                 region={selected}
                 onDragStart={freezeHistory}
                 onDragEnd={unfreezeHistory}
               />
-            ) : !item.cuboidControl ? null : (
+            ) : !item.cuboidControl && !item.polylineControl ? null : (
               <p className={block.elem("hint").toClassName()}>
-                Pick a label, press <kbd>N</kbd> and drag a rectangle in the bird&rsquo;s-eye view to add a box. Click a
-                box to select it, then refine it in the top, side and rear views.
+                {item.cuboidControl && (
+                  <>
+                    Pick a label, press <kbd>N</kbd> and drag a rectangle in the bird&rsquo;s-eye view to add a box. Click
+                    a box to select it, then refine it in the top, side and rear views.{" "}
+                  </>
+                )}
+                {item.polylineControl && (
+                  <>
+                    Press <kbd>J</kbd> and click along a lane marking to draw a 3D line; intensity coloring makes paint
+                    easy to see.
+                  </>
+                )}
               </p>
             )}
           </aside>

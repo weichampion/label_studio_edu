@@ -89,6 +89,7 @@ const PanelModel = types
       "pointcloud",
       "cuboid",
       "pointlabels",
+      "polyline3d",
       "custominterface",
       ...Registry.customTags.map((t) => t.tag.toLowerCase()),
     ]),

@@ -1,6 +1,7 @@
 """3D point cloud annotation (<PointCloud> + <Cuboid>) in the school edition."""
 
 import io
+import json
 import zipfile
 
 import pytest
@@ -337,3 +338,63 @@ def test_segmentation_template_group_is_grantable():
     )
     assert config_allowed(template, ['3D Point Cloud']) is True
     assert config_allowed(template, ['Computer Vision']) is False
+
+
+# --------------------------------------------------------------------------------------------------
+# 3D lane lines (<Polyline3D>)
+# --------------------------------------------------------------------------------------------------
+
+LANE_CONFIG = (
+    '<View>'
+    '<Labels name="lane_type" toName="pcd"><Label value="Dashed"/><Label value="Solid"/></Labels>'
+    '<PointCloud name="pcd" value="$pointcloud"/>'
+    '<Polyline3D name="lane" toName="pcd"/>'
+    '</View>'
+)
+LANE = {
+    'id': 'l1',
+    'from_name': 'lane',
+    'to_name': 'pcd',
+    'type': 'polyline3d',
+    'value': {'points': [[3.0, 1.75, -1.73], [13.0, 1.75, -1.73]], 'labels': ['Dashed']},
+}
+
+
+@pytest.fixture
+def lanes(w):
+    project = Project.objects.create(
+        title='lanes', label_config=LANE_CONFIG, organization=w.cs.organization, created_by=w.u['cs_teacher']
+    )
+    task = Task.objects.create(project=project, data={'pointcloud': '/data/upload/1/scene_000001.pcd'})
+    services.assign_students(project, [w.u['cs_s1']])
+    return project, task
+
+
+def test_lane_lines_are_counted_protected_and_exported(w, lanes):
+    project, task = lanes
+    assert access.control_modules(project)['lane'] == {'pointcloud'}
+    student = client_for(w.u['cs_s1'])
+    response = student.post(f'/api/tasks/{task.pk}/annotations/', {'result': [LANE]}, format='json')
+    assert response.status_code == 201, response.content
+    project.refresh_from_db()
+    assert project.summary.created_labels['lane'] == {'Dashed': 1}
+    teacher = client_for(w.u['cs_teacher'])
+    url = f'/api/projects/{project.pk}/validate'
+    without_dashed = LANE_CONFIG.replace('<Label value="Dashed"/>', '')
+    assert teacher.post(url, {'label_config': without_dashed}, format='json').status_code == 400
+
+    formats = {f['name']: f for f in teacher.get(f'/api/projects/{project.pk}/export/formats').json()}
+    assert not formats['LANE3D_JSON'].get('disabled') and formats['OPENPCDET_3D'].get('disabled')
+    export = f'/api/projects/{project.pk}/export?exportType=LANE3D_JSON'
+    assert student.get(export).status_code == 403
+    restrict(w, project, features=('annotate', 'export_data'))
+    response = student.get(export)
+    assert response.status_code == 200
+    archive = zipfile.ZipFile(io.BytesIO(b''.join(response.streaming_content)))
+    content = json.loads(archive.read('lanes/scene_000001.json'))
+    assert content['lanes'][0]['category'] == 'Dashed' and content['lanes'][0]['points'][0] == [3.0, 1.75, -1.73]
+
+
+def test_lane_template_group_is_grantable():
+    assert config_allowed(LANE_CONFIG, ['3D Point Cloud']) is True
+    assert config_allowed(LANE_CONFIG, ['Computer Vision']) is False

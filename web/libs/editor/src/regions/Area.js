@@ -20,6 +20,7 @@ import { VideoVectorRegionModel } from "./VideoVectorRegion";
 import { BitmaskRegionModel } from "./BitmaskRegion";
 import { CuboidRegionModel } from "./CuboidRegion";
 import { PointSegmentationRegionModel } from "./PointSegmentationRegion";
+import { Polyline3DRegionModel } from "./Polyline3DRegion";
 
 // general Area type for classification Results which doesn't belong to any real Area
 const ClassificationArea = types.compose(
@@ -81,6 +82,8 @@ const Area = types.union(
       if (tag.type === "pointcloud") {
         // per-point classes of <PointLabels>
         if (sn.frames !== undefined || sn.value?.frames !== undefined) return PointSegmentationRegionModel;
+        // 3D polylines (lane lines)
+        if (sn.points || sn.value?.points) return Polyline3DRegionModel;
         // 3D boxes carry position/dimensions (or keyframes for tracks); anything else is a classification
         if (sn.position || sn.value?.position || sn.sequence || sn.value?.sequence) return CuboidRegionModel;
         return ClassificationArea;
@@ -120,6 +123,7 @@ const Area = types.union(
   VideoVectorRegionModel,
   CuboidRegionModel,
   PointSegmentationRegionModel,
+  Polyline3DRegionModel,
   ClassificationArea,
   ...Registry.customTags.map((t) => t.region).filter(Boolean),
 );

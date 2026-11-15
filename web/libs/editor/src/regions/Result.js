@@ -41,6 +41,7 @@ const resultTypes = [
   "ranker",
   "cuboid",
   "pointlabels",
+  "polyline3d",
 ];
 
 const resultValues = {

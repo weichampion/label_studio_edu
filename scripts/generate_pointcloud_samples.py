@@ -629,6 +629,58 @@ def segmentation_sample(points):
     return codes
 
 
+# painted dashed lane lines of the simulated road (see the lane markings in simulate())
+LANE_LINES = [('Dashed', 1.75), ('Dashed', -1.75)]
+
+
+def lane_sample(points):
+    """Pre-annotated lane task for the single scan and the template thumbnail."""
+    result = []
+    for i, (label, y) in enumerate(LANE_LINES):
+        result.append(
+            {
+                'id': f'lane{i}',
+                'from_name': 'lane',
+                'to_name': 'pcd',
+                'type': 'polyline3d',
+                'value': {'points': [[float(x), y, GROUND_Z] for x in range(3, 64, 10)], 'labels': [label]},
+            }
+        )
+        result.append(
+            {
+                'id': f'lane{i}',
+                'from_name': 'color',
+                'to_name': 'pcd',
+                'type': 'choices',
+                'value': {'choices': ['White']},
+            }
+        )
+    tasks = [
+        {
+            'data': {'pointcloud': '/static/samples/pointcloud/scene_000001.pcd'},
+            'predictions': [{'model_version': 'synthetic-ground-truth', 'score': 1.0, 'result': result}],
+        }
+    ]
+    with open(os.path.join(SAMPLES, 'scene_000001_lanes_tasks.json'), 'w', encoding='utf-8') as f:
+        json.dump(tasks, f, indent=2)
+
+    w, h = 1229, 756
+    img = Canvas(w, h, (20, 23, 28))
+    scale = 13.0
+    ox, oy = w / 2, h - 60
+    for x, y, z, intensity in points:
+        # intensity coloring, as recommended for lane annotation: paint stands out
+        v = int(60 + 195 * min(1.0, intensity / 0.85))
+        img.dot(ox - y * scale, oy - x * scale, (v, v, v) if z < GROUND_Z + 0.2 else (70, 80, 95), 1)
+    for _, y in LANE_LINES:
+        img.line(ox - y * scale, oy - 3 * scale, ox - y * scale, oy - 63 * scale, (250, 219, 20), 3)
+    img.fill_convex(
+        [(ox - 0.9 * scale, oy - 2 * scale), (ox + 0.9 * scale, oy - 2 * scale), (ox + 0.9 * scale, oy + 2 * scale), (ox - 0.9 * scale, oy + 2 * scale)],
+        (90, 140, 255),
+    )
+    img.png(os.path.join(TEMPLATES, 'lidar-lane-annotation.png'))
+
+
 def main():
     os.makedirs(SAMPLES, exist_ok=True)
     os.makedirs(TEMPLATES, exist_ok=True)
@@ -638,6 +690,7 @@ def main():
     bev_thumbnail(points, os.path.join(TEMPLATES, 'lidar-3d-object-detection.png'))
     bev_thumbnail(points, os.path.join(TEMPLATES, 'lidar-camera-fusion.png'), with_camera=True)
     segmentation_sample(points)
+    lane_sample(points)
     with open(os.path.join(SAMPLES, 'scene_000001_tasks.json'), 'w', encoding='utf-8') as f:
         json.dump(
             tasks_json(

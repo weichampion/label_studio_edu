@@ -1,0 +1,37 @@
+title: LiDAR Lane Annotation
+type: community
+group: 3D Point Cloud
+order: 5
+image: /static/templates/lidar-lane-annotation.png
+details: |
+  <h1>Draw 3D lane lines and road edges on LiDAR point clouds</h1>
+  <dl>
+    <dt>Industry Applications</dt>
+    <dd>autonomous driving, HD maps, lane keeping, ADAS validation, road inventory</dd>
+    <dt>Associated Models</dt>
+    <dd>PersFormer, Anchor3DLane, LATR, HDMapNet, MapTR</dd>
+    <dt>Domain Terminology</dt>
+    <dd>3D lane, polyline, lane marking, road edge, stop line, intensity, OpenLane</dd>
+    <dt>Data</dt>
+    <dd>.pcd or KITTI .bin with intensity, single scans or sequences ("frames" with ego poses: a line drawn once is shown in every frame). Press J and click along a marking, double-click to finish; "Snap to Markings" moves the line onto the paint. Exports one lanes/&lt;frame&gt;.json per point cloud.</dd>
+  </dl>
+config: |
+  <View>
+    <Labels name="lane_type" toName="pcd">
+      <Label value="Solid" background="#F5F5F5"/>
+      <Label value="Dashed" background="#FADB14"/>
+      <Label value="Double Solid" background="#FA8C16"/>
+      <Label value="Road Edge" background="#F5222D"/>
+      <Label value="Stop Line" background="#13C2C2"/>
+    </Labels>
+    <PointCloud name="pcd" value="$pointcloud" colorMode="intensity"/>
+    <Polyline3D name="lane" toName="pcd"/>
+    <Choices name="color" toName="pcd" perRegion="true" choice="single">
+      <Choice value="White"/>
+      <Choice value="Yellow"/>
+    </Choices>
+  </View>
+
+  <!--{
+    "pointcloud": "/static/samples/pointcloud/scene_000001.pcd"
+  }-->

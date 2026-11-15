@@ -42,6 +42,11 @@ SEMANTIC_KITTI
     0 = unlabeled) and ``classes.json`` (id -> class, ids in config order). Unlabeled frames are listed in
     ``export_report.json``.
 
+LANE3D_JSON
+    3D polylines from ``<Polyline3D>`` (``polyline3d`` results: ``points`` in the LiDAR frame of ``frame``):
+    ``lanes/<frame>.json`` per point cloud with ``{"lanes": [{"id", "track_id", "category", "attributes",
+    "points": [[x, y, z], ...]}]}`` in that frame's coordinates (sequences: moved through the ego poses).
+
 All formats also write ``mapping.json`` and ``export_report.json``; for sequences OPENPCDET_3D adds
 ``tracks.json`` (track id of every label line). OPENPCDET_3D writes per-box attributes to ``attributes.json``
 (same order as the label lines); KITTI formats put attributes named like ``occluded`` / ``truncated`` into
@@ -69,6 +74,7 @@ class PointCloudFormat(Enum):
     KITTI_3D = 102
     KITTI_TRACKING = 103
     SEMANTIC_KITTI = 104
+    LANE3D_JSON = 105
 
     def __str__(self):
         return self.name
@@ -104,9 +110,18 @@ FORMAT_INFO = {
         'tags': ['semantic segmentation', 'point cloud', 'LiDAR'],
     },
 }
+FORMAT_INFO[PointCloudFormat.LANE3D_JSON] = {
+    'title': '3D Lanes JSON (LiDAR frame)',
+    'description': '3D polylines from <Polyline3D> (lane lines, road edges): one lanes/<frame>.json per point cloud '
+    'with every line as [x, y, z] points in that frame\'s LiDAR coordinates, its type, attributes and track id. '
+    'Lines drawn once in a sequence are written to every frame through the ego poses.',
+    'link': 'https://github.com/OpenDriveLab/OpenLane',
+    'tags': ['lane detection', '3D polyline', 'point cloud', 'LiDAR'],
+}
 FORMAT_NAMES = {f.name for f in PointCloudFormat}
 SEGMENTATION_FORMAT_NAMES = {PointCloudFormat.SEMANTIC_KITTI.name}
-BOX_FORMAT_NAMES = FORMAT_NAMES - SEGMENTATION_FORMAT_NAMES
+LANE_FORMAT_NAMES = {PointCloudFormat.LANE3D_JSON.name}
+BOX_FORMAT_NAMES = FORMAT_NAMES - SEGMENTATION_FORMAT_NAMES - LANE_FORMAT_NAMES
 
 OCCLUSION_WORDS = (
     ('fully', 0),
@@ -195,6 +210,41 @@ def segmentation_spec(label_config):
         for to_name in (el.get('toName') or '').split(','):
             if to_name in objects:
                 spec.append({'control': el.get('name'), 'object': to_name, 'data_key': objects[to_name], 'classes': classes})
+    return spec
+
+
+def polyline_spec(label_config):
+    """[{control, object, data_key}] for every <Polyline3D> attached to a <PointCloud>."""
+    if not label_config:
+        return []
+    try:
+        root = _ET.fromstring(label_config)
+    except Exception:
+        return []
+    objects = {
+        el.get('name'): (el.get('value') or '').lstrip('$') or None
+        for el in root.iter()
+        if el.tag.lower() == 'pointcloud' and el.get('name')
+    }
+    spec = []
+    for el in root.iter():
+        if el.tag.lower() != 'polyline3d' or not el.get('name'):
+            continue
+        for to_name in (el.get('toName') or '').split(','):
+            if to_name in objects:
+                spec.append({'control': el.get('name'), 'object': to_name, 'data_key': objects[to_name]})
+    return spec
+
+
+def polyline_spec_from_parsed_config(parsed):
+    """Fallback when only the parsed config is known."""
+    spec = []
+    for name, info in (parsed or {}).items():
+        if str(info.get('type', '')).lower() != 'polyline3d':
+            continue
+        for to_name, inp in zip(info.get('to_name') or [], info.get('inputs') or []):
+            if str(inp.get('type', '')).lower() == 'pointcloud':
+                spec.append({'control': name, 'object': to_name, 'data_key': inp.get('value')})
     return spec
 
 
@@ -582,6 +632,143 @@ def task_frames(task, data_key, images_key):
     for frame in frames:
         frame['cameras'] = parse_cameras(frame['cameras']) if frame['cameras'] else task_cameras
     return frames, True
+
+
+# --------------------------------------------------------------------------------------------------
+# 3D polylines (same rules as the editor's PointCloud/lanes.ts)
+# --------------------------------------------------------------------------------------------------
+
+
+def normalize_points(raw):
+    out = []
+    for p in raw if isinstance(raw, list) else []:
+        if isinstance(p, dict):
+            p = [p.get('x'), p.get('y'), p.get('z', 0)]
+        if not isinstance(p, (list, tuple)) or len(p) < 2:
+            continue
+        try:
+            x, y = float(p[0]), float(p[1])
+            z = float(p[2]) if len(p) > 2 and p[2] is not None else 0.0
+        except (TypeError, ValueError):
+            continue
+        if all(math.isfinite(v) for v in (x, y, z)):
+            out.append([x, y, z])
+    return out
+
+
+def transform_points(points, m):
+    return [
+        [
+            m[0] * x + m[1] * y + m[2] * z + m[3],
+            m[4] * x + m[5] * y + m[6] * z + m[7],
+            m[8] * x + m[9] * y + m[10] * z + m[11],
+        ]
+        for x, y, z in points
+    ]
+
+
+def polylines_from_annotation(annotation, controls):
+    """[{id, label, attributes, points, frame}] from the polyline3d results of the given controls."""
+    results = annotation.get('result') or []
+    attributes, separate_labels = {}, {}
+    for r in results:
+        if r.get('type') == 'polyline3d' or not r.get('id'):
+            continue
+        value = r.get('value') or {}
+        if r.get('type') == 'labels' and value.get('labels'):
+            separate_labels[r['id']] = value['labels']
+            continue
+        for key in ('choices', 'text', 'number', 'rating'):
+            if key in value:
+                attributes.setdefault(r['id'], {})[r.get('from_name')] = value[key]
+    lines = []
+    for r in results:
+        if r.get('type') != 'polyline3d' or r.get('from_name') not in controls:
+            continue
+        value = r.get('value') or {}
+        points = normalize_points(value.get('points'))
+        if len(points) < 2:
+            continue
+        labels = value.get('labels') or separate_labels.get(r.get('id')) or []
+        frame = value.get('frame')
+        lines.append(
+            {
+                'id': r.get('id'),
+                'label': str(labels[0]) if labels else 'Unknown',
+                'attributes': attributes.get(r.get('id'), {}),
+                'points': points,
+                'frame': frame if isinstance(frame, int) and not isinstance(frame, bool) and frame >= 0 else None,
+            }
+        )
+    return lines
+
+
+def lanes_in_frame(line, frame, poses):
+    """Vertices of ``line`` in the LiDAR coordinates of ``frame``: moved from its reference frame by the ego poses."""
+    ref = line['frame'] if line['frame'] is not None else frame
+    pose = lambda i: poses[i] if 0 <= i < len(poses) else None  # noqa: E731
+    if ref == frame or not pose(ref) or not pose(frame):
+        return [list(p) for p in line['points']]
+    return transform_points(line['points'], _mul4(invert_rigid(pose(frame)), pose(ref)))
+
+
+def convert_lanes(tasks, output_dir, lane_spec):
+    """LANE3D_JSON export of <Polyline3D> results. Returns a report dict."""
+    if not lane_spec:
+        raise ValueError('The labeling config has no <Polyline3D> attached to a <PointCloud>')
+    os.makedirs(output_dir, exist_ok=True)
+    controls = {s['control'] for s in lane_spec}
+    data_key = lane_spec[0]['data_key']
+    used, listed, mapping = set(), [], []
+    report = {'format': PointCloudFormat.LANE3D_JSON.name, 'frames': 0, 'lines': 0, 'skipped': []}
+    for task in tasks:
+        annotation = pick_annotation(task)
+        lines = polylines_from_annotation(annotation, controls) if annotation else []
+        if not lines:
+            report['skipped'].append({'task': task.get('id'), 'reason': 'no polylines'})
+            continue
+        frames, is_sequence = task_frames(task, data_key, None)
+        poses = [f['pose'] for f in frames]
+        # track ids per task, in drawing order
+        track_ids = {line['id']: index for index, line in enumerate(lines)}
+        for frame in frames:
+            suffix = f'{task.get("id")}_{frame["index"]:04d}' if is_sequence else task.get('id')
+            name = _unique_name(frame['url'], f'task_{suffix}', used, suffix=suffix)
+            content = {
+                'frame': name,
+                'pointcloud': frame['url'],
+                'lanes': [
+                    {
+                        'id': line['id'],
+                        'track_id': track_ids[line['id']],
+                        'category': line['label'],
+                        'attributes': line['attributes'],
+                        'points': [[round(v, 4) for v in p] for p in lanes_in_frame(line, frame['index'], poses)],
+                    }
+                    for line in lines
+                ],
+            }
+            path = os.path.join(output_dir, 'lanes', f'{name}.json')
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(content, f, ensure_ascii=False, indent=2)
+            listed.append(name)
+            report['frames'] += 1
+            report['lines'] += len(lines)
+            mapping.append(
+                {
+                    'frame': name,
+                    'task': task.get('id'),
+                    'annotation': annotation.get('id'),
+                    'pointcloud': frame['url'],
+                    **({'sequence_frame': frame['index']} if is_sequence else {}),
+                }
+            )
+    _write(os.path.join(output_dir, 'ImageSets', 'train.txt'), listed)
+    for name, content in (('mapping.json', mapping), ('export_report.json', report)):
+        with open(os.path.join(output_dir, name), 'w', encoding='utf-8') as f:
+            json.dump(content, f, ensure_ascii=False, indent=2)
+    return report
 
 
 # --------------------------------------------------------------------------------------------------

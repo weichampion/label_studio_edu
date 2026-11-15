@@ -18,6 +18,7 @@ import { VideoRectangleRegionModel } from "./VideoRectangleRegion";
 import { VideoVectorRegionModel } from "./VideoVectorRegion";
 import { CuboidRegionModel } from "./CuboidRegion";
 import { PointSegmentationRegionModel } from "./PointSegmentationRegion";
+import { Polyline3DRegionModel } from "./Polyline3DRegion";
 
 const AllRegionsType = types.union(
   AudioRegionModel,
@@ -38,6 +39,7 @@ const AllRegionsType = types.union(
   VideoVectorRegionModel,
   CuboidRegionModel,
   PointSegmentationRegionModel,
+  Polyline3DRegionModel,
   ...Registry.customTags.map((t) => t.region).filter(Boolean),
 );
 
@@ -69,4 +71,5 @@ export {
   VideoVectorRegionModel,
   CuboidRegionModel,
   PointSegmentationRegionModel,
+  Polyline3DRegionModel,
 };

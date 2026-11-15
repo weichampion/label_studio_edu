@@ -17,6 +17,7 @@ import { VideoRectangleModel } from "./VideoRectangle";
 import { CuboidModel } from "./Cuboid";
 import { FrameAttributeModel } from "./FrameAttribute";
 import { PointLabelsModel } from "./PointLabels";
+import { Polyline3DModel } from "./Polyline3D";
 import { VideoVectorModel } from "./VideoVector";
 import { VideoVectorLabelsModel } from "./VideoVectorLabels";
 
@@ -60,6 +61,7 @@ export {
   CuboidModel,
   FrameAttributeModel,
   PointLabelsModel,
+  Polyline3DModel,
   BrushLabelsModel,
   BrushModel,
   EllipseLabelsModel,

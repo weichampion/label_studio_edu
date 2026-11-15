@@ -6,6 +6,7 @@ import { parseValue } from "../../../utils/data";
 import ObjectBase from "../Base";
 import { estimateGroundZ, fitBoxToPoints, parseCameraImages, pointIndicesInBox, valueFromBox } from "./geometry";
 import { detectFormat, parsePointCloud } from "./loaders";
+import { groundHeightAt } from "./lanes";
 import { groundMask, paint, transferLabels } from "./segmentation";
 import {
   accumulateFrames,
@@ -168,7 +169,7 @@ const Model = types
     cameras: [],
     // "perspective" orbit view or "bev" (bird's-eye) view; drawing happens in BEV
     viewMode: "bev",
-    // "select", "draw" (boxes), "brush" or "lasso" (point labels)
+    // "select", "draw" (boxes), "brush" or "lasso" (point labels), "polyline" (lane lines)
     tool: "select",
     colorMode: "height",
     pointSize: 2,
@@ -197,6 +198,10 @@ const Model = types
     // bumped while a stroke changes labels, so the view repaints before the stroke is stored
     segVersion: 0,
     segStroke: null,
+    // polyline being drawn: vertices in the coordinates of the frame on screen
+    lineDraft: null,
+    // vertex of the selected polyline picked for Delete / height editing
+    selectedVertex: null,
   }))
   .views((self) => ({
     get store() {
@@ -212,6 +217,18 @@ const Model = types
       return self.annotation?.toNames
         .get(self.name)
         ?.filter((s) => s.type.endsWith("labels") && s.type !== "pointlabels");
+    },
+
+    get polylineControl() {
+      return self.annotation?.toNames.get(self.name)?.find((s) => s.type === "polyline3d") ?? null;
+    },
+
+    get polylines() {
+      return self.regs.filter((r) => r.type === "polyline3dregion");
+    },
+
+    get selectedPolyline() {
+      return self.polylines.find((r) => r.selected) ?? null;
     },
 
     get segControl() {
@@ -635,6 +652,8 @@ const Model = types
     setTool(tool) {
       if (tool === "draw" && !self.canDraw) return;
       if ((tool === "brush" || tool === "lasso") && !self.segControl) return;
+      if (tool === "polyline" && (!self.polylineControl || self.annotation?.isReadOnly())) return;
+      if (tool !== "polyline") self.lineDraft = null;
       self.tool = tool;
       if (tool === "draw") self.viewMode = "bev";
       // a selected box would take the class clicks; painting works on points, not on regions
@@ -932,6 +951,62 @@ const Model = types
       return changed;
     },
 
+    /** Ground height under (x, y) in the scan on screen. */
+    groundAt(x, y) {
+      const cloud = self.cloud;
+
+      if (!cloud) return self.groundZ;
+      return groundHeightAt(cloud.positions, cloud.count, x, y, { fallback: self.groundZ, groundZ: self.groundZ });
+    },
+
+    addDraftPoint(x, y) {
+      if (!self.polylineControl || self.annotation.isReadOnly()) return;
+      self.lineDraft = [...(self.lineDraft ?? []), [x, y, self.groundAt(x, y)]];
+    },
+
+    removeDraftPoint() {
+      if (!self.lineDraft?.length) return false;
+      self.lineDraft = self.lineDraft.slice(0, -1);
+      return true;
+    },
+
+    cancelDraft() {
+      self.lineDraft = null;
+    },
+
+    /** Finish the polyline being drawn (needs 2 vertices); stays in the polyline tool for the next one. */
+    finishDraft() {
+      const points = self.lineDraft ?? [];
+
+      self.lineDraft = null;
+      if (points.length < 2) return null;
+      // in a sequence the frame on screen becomes the polyline's reference frame
+      const value = { points, ...(self.isSequence ? { frame: self.frame } : {}) };
+      const area = self.createRegionWithLabels(value, self.polylineControl);
+
+      if (area) self.annotation.selectArea(area);
+      return area;
+    },
+
+    setSelectedVertex(index) {
+      self.selectedVertex = Number.isInteger(index) ? index : null;
+    },
+
+    /** Region for a box / polyline control, labeled with the labels selected right now. */
+    createRegionWithLabels(areaValue, control) {
+      const activeStates = self.activeStates() ?? [];
+      const area = ff.isActive(ff.FF_MULTIPLE_LABELS_REGIONS)
+        ? self.annotation.createResult(areaValue, {}, control, self, false, activeStates)
+        : self.annotation.createResult(areaValue, {}, control, self, false);
+
+      if (area && !ff.isActive(ff.FF_MULTIPLE_LABELS_REGIONS)) {
+        for (const tag of activeStates) {
+          area.setValue(tag);
+        }
+      }
+      return area;
+    },
+
     /** New box; in a sequence it becomes a track with one keyframe at the current frame. */
     addCuboid(value) {
       const control = self.cuboidControl;
@@ -945,16 +1020,8 @@ const Model = types
       const areaValue = self.isSequence
         ? { sequence: [{ frame: self.frame, enabled: true, ...value }], framesCount: self.framesCount }
         : value;
-      const activeStates = self.activeStates() ?? [];
-      const area = ff.isActive(ff.FF_MULTIPLE_LABELS_REGIONS)
-        ? self.annotation.createResult(areaValue, {}, control, self, false, activeStates)
-        : self.annotation.createResult(areaValue, {}, control, self, false);
+      const area = self.createRegionWithLabels(areaValue, control);
 
-      if (area && !ff.isActive(ff.FF_MULTIPLE_LABELS_REGIONS)) {
-        for (const tag of activeStates) {
-          area.setValue(tag);
-        }
-      }
       area?.updatePointCount?.();
       return area;
     },
