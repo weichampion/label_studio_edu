@@ -432,6 +432,7 @@ bash deploy/school/local/run-lan.sh             # 之后再次启动；拉取新
 - 需要 Python 3.10–3.12、Node.js 18 以上，构建前端约需 8 GB 内存。
 - 局域网内用 `http://<本机 IP>:8080/` 访问；演示账号的密码是 `Demo@2026`。
 - 3D 模型服务会同时在 `:9090` 启动（加 `TRACKER=0` 可不启动），在项目 Settings → Model 中连接 `http://127.0.0.1:9090`。
+- 详细步骤、小内存机器的分步做法和常见问题见 [`deploy/school/local/README-LAN.md`](../../deploy/school/local/README-LAN.md)。
 
 ## 测试
 
