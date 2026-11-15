@@ -420,6 +420,19 @@ KITTI 的遮挡列来自名字包含 `occlu` 的属性（取值开头的数字�
 | `data_export/models.py`、`data_export/mixins.py` | 使用 `PointCloudConverter` |
 | `school_tenancy/models.py`、`template_groups.py` | 新增标注模块和模板分类 |
 
+## 在 Linux 机器上启动（局域网测试）
+
+```bash
+git clone -b dev_3d https://github.com/weichampion/label_studio_edu.git && cd label_studio_edu
+SEED=1 bash deploy/school/local/run-lan.sh      # 第一次：装依赖、构建前端、建库、创建演示账号
+bash deploy/school/local/run-lan.sh             # 之后再次启动；拉取新代码后加 REBUILD=1 重新构建前端
+```
+
+- 使用 SQLite 和本地文件，只用于测试，不能用于生产环境。
+- 需要 Python 3.10–3.12、Node.js 18 以上，构建前端约需 8 GB 内存。
+- 局域网内用 `http://<本机 IP>:8080/` 访问；演示账号的密码是 `Demo@2026`。
+- 3D 模型服务会同时在 `:9090` 启动（加 `TRACKER=0` 可不启动），在项目 Settings → Model 中连接 `http://127.0.0.1:9090`。
+
 ## 测试
 
 ```powershell
