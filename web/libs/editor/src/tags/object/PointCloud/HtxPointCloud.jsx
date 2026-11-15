@@ -294,7 +294,10 @@ const HtxPointCloudView = ({ item }) => {
 
   useEffect(() => {
     const findRegion = (id) => item.cuboids.find((r) => r.id === id);
-    const viewer = new Viewer3D(containerRef.current, {
+    let viewer;
+
+    try {
+      viewer = new Viewer3D(containerRef.current, {
       getSelectedId: () => (item.selectedCuboid?.isVisible ? item.selectedCuboid.id : null),
       canEdit: () => !!item.selectedCuboid && !item.selectedCuboid.isReadOnly(),
       onSelect: (id) => {
@@ -328,7 +331,11 @@ const HtxPointCloudView = ({ item }) => {
       onPaintStart: (erase) => item.beginSegStroke(erase),
       onPaint: (indices) => item.paintSeg(indices),
       onPaintEnd: () => item.endSegStroke(),
-    });
+      });
+    } catch (e) {
+      item.setLoadState(0, false, e?.message || String(e));
+      return;
+    }
 
     viewerRef.current = viewer;
 
