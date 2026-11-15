@@ -42,9 +42,10 @@ if ! "$PY" -c 'import django, label_studio' 2>/dev/null; then
   # keep the dependencies, import this checkout instead of the packaged copy
   "$PY" -m pip uninstall --quiet -y label-studio
   "$PY" - "$REPO" "$LS_VERSION" <<'EOF'
-import pathlib, site, sys
+import pathlib, sys, sysconfig
 repo, version = pathlib.Path(sys.argv[1]), sys.argv[2]
-packages = pathlib.Path(site.getsitepackages()[-1])
+# purelib: site-packages of the venv (Debian's site.getsitepackages() also lists a missing dist-packages)
+packages = pathlib.Path(sysconfig.get_paths()['purelib'])
 (packages / 'label_studio_src.pth').write_text(str(repo) + '\n')
 info = packages / f'label_studio-{version}.dist-info'
 info.mkdir(exist_ok=True)
