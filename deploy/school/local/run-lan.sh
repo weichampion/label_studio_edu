@@ -11,7 +11,8 @@
 #   SEED=1 bash deploy/school/local/run-lan.sh       first run: also create the demo accounts
 #   REBUILD=1 ...                                     rebuild the frontend after pulling new code
 #   PORT=8080 VENV=... DATA_DIR=... LAN_IP=... PYTHON=python3.12 ...
-# Needs: Python 3.10-3.12 with venv, Node.js 18+ (22 recommended), ~8 GB RAM for the frontend build.
+# Needs: Python 3.10-3.12 with venv, Node.js 18+ (22 recommended) with yarn 1 (installed if missing),
+# ~8 GB RAM for the frontend build.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/../../.." && pwd)
@@ -61,9 +62,11 @@ if [ "${REBUILD:-0}" = 1 ] || [ ! -d "$REPO/web/dist/apps/labelstudio" ]; then
   say "Building the frontend (several minutes, needs ~8 GB RAM)"
   cd "$REPO/web"
   if [ ! -f node_modules/nx/bin/nx.js ] || [ ! -d node_modules/three ]; then
-    npm install --ignore-scripts --legacy-peer-deps --package-lock=false --no-audit --no-fund
+    # install exactly what yarn.lock pins: without the lockfile npm adds a second webpack copy and the build fails
+    command -v yarn >/dev/null || npm install -g yarn@1.22.22
+    NODE_OPTIONS=--max-old-space-size=4096 yarn install --frozen-lockfile --ignore-scripts --network-timeout 600000
   fi
-  NX_DAEMON=false BUILD_NO_SERVER=true node node_modules/nx/bin/nx.js build labelstudio --configuration=development
+  NODE_OPTIONS=--max-old-space-size=6144 NX_DAEMON=false BUILD_NO_SERVER=true node node_modules/nx/bin/nx.js build labelstudio --configuration=development
 fi
 
 # 3. Database, static files, demo data --------------------------------------------------------------

@@ -14,7 +14,7 @@
 |---|---|
 | 系统 | Debian 12 / Ubuntu 22.04 及以上（其他发行版需自行安装同等软件包） |
 | Python | 3.10–3.12，带 `venv` |
-| Node.js | 18 以上（推荐 22） |
+| Node.js | 18 以上（推荐 22），以及 yarn 1（`sudo npm install -g yarn@1.22.22`，脚本缺少时会自动安装） |
 | 内存 | 构建前端约需 8 GB（内存不足时用交换空间补足，见第 4 节）；运行时约 1 GB |
 | 磁盘 | 约 6 GB（Python 依赖约 1 GB，`web/node_modules` 约 3 GB） |
 | 端口 | 8080（Label Studio）、9090（3D 模型服务） |
@@ -51,7 +51,7 @@ REBUILD=1 bash deploy/school/local/run-lan.sh   # 拉取新代码后：重新构
 脚本依次完成：
 
 1. 在仓库旁边创建 `.venv`，安装同版本 label-studio wheel 的依赖，然后让 venv 导入本仓库的代码。
-2. `web/dist` 不存在（或 `REBUILD=1`）时，执行 `npm install` 和前端构建。
+2. `web/dist` 不存在（或 `REBUILD=1`）时，用 yarn 按 `yarn.lock` 安装前端依赖并构建。
 3. 执行 `migrate`、`collectstatic`；`SEED=1` 时创建演示学院和账号。
 4. 后台启动 3D 模型服务（`:9090`，日志 `<数据目录>/tracker.log`），前台启动 Label Studio（`0.0.0.0:8080`）。
 
@@ -101,16 +101,18 @@ free -m                                   # Swap 一行应有约 8 GB
 
 ```bash
 cd /app/llm/label_studio_edu/web
-rm -rf node_modules                      # 上一次没装完时必须先删除，否则报 ENOTEMPTY
-NODE_OPTIONS=--max-old-space-size=4096 npm install --ignore-scripts --legacy-peer-deps \
-  --package-lock=false --no-audit --no-fund \
-  --fetch-timeout=600000 --fetch-retries=6 --fetch-retry-maxtimeout=180000 --maxsockets=4
+rm -rf node_modules                      # 上一次没装完、或之前用 npm 装过时，必须先删除
+command -v yarn || sudo npm install -g yarn@1.22.22
+NODE_OPTIONS=--max-old-space-size=4096 yarn install --frozen-lockfile --ignore-scripts \
+  --network-timeout 600000 --network-concurrency 4
 ls node_modules/nx/bin/nx.js node_modules/three/package.json   # 两个文件都在才算装好
 ```
 
+- **必须用 yarn 并带 `--frozen-lockfile`**：`yarn.lock` 把所有包要求的 webpack 统一锁定为同一个版本。用 npm 安装时会多出一份 webpack，
+  构建会失败，报错 `Module not found: TypeError: Cannot read properties of undefined (reading 'tap')`。
 - `NODE_OPTIONS=--max-old-space-size=4096`：Node 默认按物理内存决定堆大小，不会用到交换空间，小内存机器上会报 `JavaScript heap out of memory`。
-- 后面的 `--fetch-*` 和 `--maxsockets` 参数：机器频繁换页时，下载容易超时（`ERR_SOCKET_TIMEOUT`）。
-- 国内网络慢时加 `--registry=https://registry.npmmirror.com`。
+- `--network-timeout` 和 `--network-concurrency`：机器频繁换页时，下载容易超时。
+- 国内网络慢时加 `--registry https://registry.npmmirror.com`。
 
 ### 4.4 构建前端
 
@@ -219,8 +221,10 @@ pkill -f "pointcloud_tracker.*_wsgi.py|_wsgi.py"
 | 现象 | 原因与处理 |
 |---|---|
 | `npm ERR! ... JavaScript heap out of memory` | 加 `NODE_OPTIONS=--max-old-space-size=4096`，并确认交换空间已启用（4.1、4.3） |
+| 构建报 `Module not found: TypeError: Cannot read properties of undefined (reading 'tap')` | 前端依赖是用 npm 装的，出现了两份 webpack：`rm -rf web/node_modules` 后改用 yarn 安装（4.3） |
+| 构建时出现 `/bin/sh: 1: yarn: not found` | 没有安装 yarn：`sudo npm install -g yarn@1.22.22` |
 | `npm ERR! code ENOTEMPTY ... rename .../node_modules/xxx` | 上一次安装中途失败留下的残留：`rm -rf web/node_modules` 后重装 |
-| `npm ERR! code ERR_SOCKET_TIMEOUT` | 机器在频繁换页或网络慢：加 `--fetch-timeout` 等参数重试，或换 npmmirror 镜像（4.3） |
+| 依赖下载超时（`ERR_SOCKET_TIMEOUT`、`ESOCKETTIMEDOUT`） | 机器在频繁换页或网络慢：加大超时参数后重试，或换 npmmirror 镜像（4.3） |
 | 构建时进程被系统杀掉（`Killed`） | 内存加交换空间仍不够：增大交换空间，或在别的电脑构建后拷贝 `web/dist`（4.4） |
 | `ModuleNotFoundError: No module named 'label_studio'` | venv 没有指向本仓库：删除 venv 后重新运行脚本。旧版脚本在 Debian 上会把路径写到不存在的 `dist-packages`，已修复 |
 | 局域网其他电脑登录或提交时 `CSRF verification failed` | `LAN_IP` 与浏览器地址栏中的地址不一致：把 `LAN_IP` 设为实际访问用的 IP 或域名后重启 |
