@@ -14,7 +14,7 @@
 |---|---|
 | 系统 | Debian 12 / Ubuntu 22.04 及以上（其他发行版需自行安装同等软件包） |
 | Python | 3.10–3.12，带 `venv` |
-| Node.js | 18 以上（推荐 22），以及 yarn 1（`sudo npm install -g yarn@1.22.22`，脚本缺少时会自动安装） |
+| Node.js | **20 以上（推荐 22）**，部分依赖不支持 18；以及 yarn 1（`sudo npm install -g yarn@1.22.22`，脚本缺少时会自动安装） |
 | 内存 | 构建前端约需 8 GB（内存不足时用交换空间补足，见第 4 节）；运行时约 1 GB |
 | 磁盘 | 约 6 GB（Python 依赖约 1 GB，`web/node_modules` 约 3 GB） |
 | 端口 | 8080（Label Studio）、9090（3D 模型服务） |
@@ -23,8 +23,15 @@
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y git python3-venv python3-pip python3-dev build-essential libpq-dev nodejs npm net-tools
-node -v     # v18 以上
+sudo apt-get install -y git python3-venv python3-pip python3-dev build-essential libpq-dev net-tools xz-utils
+# Node.js 22（系统自带的 nodejs 版本通常太旧）。二选一：
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt-get install -y nodejs
+# 或使用官方二进制包，装到 /opt/node22，使用前把它加到 PATH 前面：
+#   curl -fsSLO https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz
+#   sudo mkdir -p /opt/node22 && sudo tar -xJf node-v22.11.0-linux-x64.tar.xz -C /opt/node22 --strip-components=1
+#   export PATH=/opt/node22/bin:$PATH
+node -v     # v20 以上
+sudo npm install -g yarn@1.22.22
 ```
 
 ## 2. 获取代码
@@ -222,6 +229,7 @@ pkill -f "pointcloud_tracker.*_wsgi.py|_wsgi.py"
 |---|---|
 | `npm ERR! ... JavaScript heap out of memory` | 加 `NODE_OPTIONS=--max-old-space-size=4096`，并确认交换空间已启用（4.1、4.3） |
 | 构建报 `Module not found: TypeError: Cannot read properties of undefined (reading 'tap')` | 前端依赖是用 npm 装的，出现了两份 webpack：`rm -rf web/node_modules` 后改用 yarn 安装（4.3） |
+| `error ... The engine "node" is incompatible with this module. Expected version "20 \|\| >=22"` | Node 版本太旧：安装 Node 22（第 1 节） |
 | 构建时出现 `/bin/sh: 1: yarn: not found` | 没有安装 yarn：`sudo npm install -g yarn@1.22.22` |
 | `npm ERR! code ENOTEMPTY ... rename .../node_modules/xxx` | 上一次安装中途失败留下的残留：`rm -rf web/node_modules` 后重装 |
 | 依赖下载超时（`ERR_SOCKET_TIMEOUT`、`ESOCKETTIMEDOUT`） | 机器在频繁换页或网络慢：加大超时参数后重试，或换 npmmirror 镜像（4.3） |

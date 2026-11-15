@@ -11,7 +11,7 @@
 #   SEED=1 bash deploy/school/local/run-lan.sh       first run: also create the demo accounts
 #   REBUILD=1 ...                                     rebuild the frontend after pulling new code
 #   PORT=8080 VENV=... DATA_DIR=... LAN_IP=... PYTHON=python3.12 ...
-# Needs: Python 3.10-3.12 with venv, Node.js 18+ (22 recommended) with yarn 1 (installed if missing),
+# Needs: Python 3.10-3.12 with venv, Node.js 20+ (22 recommended) with yarn 1 (installed if missing),
 # ~8 GB RAM for the frontend build.
 set -euo pipefail
 
@@ -58,7 +58,8 @@ fi
 
 # 2. Frontend ---------------------------------------------------------------------------------------
 if [ "${REBUILD:-0}" = 1 ] || [ ! -d "$REPO/web/dist/apps/labelstudio" ]; then
-  command -v node >/dev/null || { echo "Node.js is required to build the frontend"; exit 1; }
+  command -v node >/dev/null || { echo "Node.js 20+ is required to build the frontend"; exit 1; }
+  [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 20 ] || { echo "Node.js 20+ is required (found $(node -v))"; exit 1; }
   say "Building the frontend (several minutes, needs ~8 GB RAM)"
   cd "$REPO/web"
   if [ ! -f node_modules/nx/bin/nx.js ] || [ ! -d node_modules/three ]; then
