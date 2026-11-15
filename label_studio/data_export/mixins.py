@@ -23,7 +23,9 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.db.models.query_utils import Q
 from django.utils import dateformat, timezone
-from label_studio_sdk.converter import Converter
+from label_studio_sdk.converter import Converter  # noqa: F401 (kept for imports from this module)
+# POINTCLOUD-3D: SDK converter + KITTI_3D / OPENPCDET_3D export formats for <PointCloud> projects
+from pointcloud3d.converter import PointCloudConverter
 from tasks.models import Annotation, AnnotationDraft, Task
 
 ONLY = 'only'
@@ -354,7 +356,7 @@ class ExportMixin:
             out_dir = pathlib.Path(tmp_dir) / OUT
             out_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
-            converter = Converter(
+            converter = PointCloudConverter(
                 config=self.project.get_parsed_config(),
                 project_dir=None,
                 upload_dir=out_dir,
@@ -362,6 +364,7 @@ class ExportMixin:
                 # for downloading resource we need access to the API
                 access_token=self.project.organization.created_by.auth_token.key,
                 hostname=hostname,
+                label_config=self.project.label_config,
             )
             input_name = pathlib.Path(self.file.name).name
             input_file_path = pathlib.Path(tmp_dir) / input_name

@@ -18,6 +18,8 @@ import { ParagraphsRegionModel } from "./ParagraphsRegion";
 import { VideoRectangleRegionModel } from "./VideoRectangleRegion";
 import { VideoVectorRegionModel } from "./VideoVectorRegion";
 import { BitmaskRegionModel } from "./BitmaskRegion";
+import { CuboidRegionModel } from "./CuboidRegion";
+import { PointSegmentationRegionModel } from "./PointSegmentationRegion";
 
 // general Area type for classification Results which doesn't belong to any real Area
 const ClassificationArea = types.compose(
@@ -76,6 +78,14 @@ const Area = types.union(
       const available = Registry.getAvailableAreas(tag.type, sn);
       // union of all available Areas for this Object type
 
+      if (tag.type === "pointcloud") {
+        // per-point classes of <PointLabels>
+        if (sn.frames !== undefined || sn.value?.frames !== undefined) return PointSegmentationRegionModel;
+        // 3D boxes carry position/dimensions (or keyframes for tracks); anything else is a classification
+        if (sn.position || sn.value?.position || sn.sequence || sn.value?.sequence) return CuboidRegionModel;
+        return ClassificationArea;
+      }
+
       if (tag.type === "video") {
         const seq = sn.sequence || sn.value?.sequence;
 
@@ -108,6 +118,8 @@ const Area = types.union(
   BitmaskRegionModel,
   VideoRectangleRegionModel,
   VideoVectorRegionModel,
+  CuboidRegionModel,
+  PointSegmentationRegionModel,
   ClassificationArea,
   ...Registry.customTags.map((t) => t.region).filter(Boolean),
 );

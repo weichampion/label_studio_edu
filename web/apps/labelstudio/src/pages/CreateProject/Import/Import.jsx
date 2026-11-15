@@ -35,6 +35,7 @@ const supportedExtensions = {
   image: ["bmp", "gif", "jpg", "jpeg", "png", "svg", "webp"],
   html: ["html", "htm", "xml"],
   pdf: ["pdf"],
+  pointCloud: ["pcd", "bin"],
   structuredData: ["csv", "tsv", "json"],
 };
 const allSupportedExtensions = flatten(Object.values(supportedExtensions));
@@ -469,6 +470,8 @@ export const ImportPage = ({
                       <dd>{supportedExtensions.structuredData.join(", ")}</dd>
                       <dt>PDF</dt>
                       <dd>{supportedExtensions.pdf.join(", ")}</dd>
+                      <dt>Point clouds</dt>
+                      <dd>{supportedExtensions.pointCloud.join(", ")}</dd>
                     </dl>
                     <div className="tips">
                       <b>Important:</b>

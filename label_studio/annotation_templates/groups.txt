@@ -7,5 +7,6 @@ Ranking & Scoring
 Structured Data Parsing
 Time Series Analysis
 Videos
+3D Point Cloud
 Generative AI
 Community Contributions

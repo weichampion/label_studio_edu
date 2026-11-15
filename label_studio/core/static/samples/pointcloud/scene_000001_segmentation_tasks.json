@@ -1,0 +1,50 @@
+[
+  {
+    "data": {
+      "pointcloud": "/static/samples/pointcloud/scene_000001.pcd"
+    },
+    "predictions": [
+      {
+        "model_version": "synthetic-ground-truth",
+        "score": 1.0,
+        "result": [
+          {
+            "id": "seg0",
+            "from_name": "seg",
+            "to_name": "pcd",
+            "type": "pointlabels",
+            "value": {
+              "classes": [
+                "Road",
+                "Sidewalk",
+                "Building",
+                "Pole",
+                "Car",
+                "Truck",
+                "Pedestrian",
+                "Cyclist"
+              ],
+              "frames": [
+                {
+                  "frame": 0,
+                  "count": 27430,
+                  "rle": "Ae9HAjUBjgMCNAHwAgJvAdMCAm8BwAIClQEBrAIClgEBngICswEBjwICswEB3QEFBQEgAs0BAfUBAs0BAcgBBRoBBwLlAQHdAQLlAQG1AQUtAusBAccBAvsBAaoBBTgC6gEBswECjwIBLQUbAVgFQQJQAxQChwEBnwEClwIHCwIBASMFHQFWBUECFgOHAQJXAY0BAmYDaQJRBwsCCgEaBR8BSwIJBUEDuAECRQF7Ak0DrQECLwcLAhMBEQUgAUICEQVBA8MBAkIBawJFA9UBAhcHCwIVBwICBAEJBSABDAgCASsCGgVBA8MBAksBWQJOA+oBAgIHCwISBwcCCwUgAQgIBgENBQ8BBwIaBAICBgVBA8MBAlMBSQJWA+wBBwsDBgIMBwcCCwUgAQgIBgENBQ8CGgMHBAIDBgVBA8MBAlsBOQJeA+wBBwsDEgcHAgsFIAYEAQQIBgENBQ8CCgMXBAIDBgVBA8MBAmMBKQJmA+wBBwsDEgcHAwkEAgUgBgYBAggGAQsCAgUPAyEEAgMGBUEDwwECawEZAm4D7AEHCwMSBwcDCQQCBSAGBgECCAYFDQMjBAID9gMHCwMSBwcDCQQCAw4EAQMGBg4IBAMoBAID/gMEAwMiBAIDDgQBAwYGDgMoBAID/gMEAwMiBAIDDgQBAwYGDgMoBAID/gMEAwMiBAIDDgQBAwYGDgMoBAID/gMEAwMiBAIDDgQBAwY="
+                }
+              ],
+              "pointlabels": [
+                "Road",
+                "Sidewalk",
+                "Building",
+                "Pole",
+                "Car",
+                "Truck",
+                "Pedestrian",
+                "Cyclist"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

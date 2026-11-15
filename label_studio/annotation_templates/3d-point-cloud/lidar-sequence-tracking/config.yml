@@ -1,0 +1,46 @@
+title: LiDAR Sequence Tracking
+type: community
+group: 3D Point Cloud
+order: 3
+image: /static/templates/lidar-sequence-tracking.png
+details: |
+  <h1>Annotate and track 3D boxes through a sequence of LiDAR scans</h1>
+  <dl>
+    <dt>Industry Applications</dt>
+    <dd>autonomous driving, multi-object tracking, motion forecasting, ADAS validation, robotics</dd>
+    <dt>Associated Models</dt>
+    <dd>AB3DMOT, CenterPoint tracking, SimpleTrack, Kalman filter</dd>
+    <dt>Domain Terminology</dt>
+    <dd>keyframe, interpolation, track id, lifespan, per-frame attributes, ego pose, ego-motion compensation, KITTI tracking</dd>
+    <dt>Data</dt>
+    <dd>"frames" is a list of point cloud URLs or {"pointcloud", "pose" (4x4 LiDAR to world, optional), "cameras" (optional)}. Boxes are drawn on keyframes and interpolated in between; with poses, interpolation follows the real motion while the ego vehicle moves. Per-frame attributes (occlusion, truncation, moving) can be set for a range of frames of one or many tracks at once with "Batch Attributes" on the timeline.</dd>
+  </dl>
+config: |
+  <View>
+    <Labels name="label" toName="pcd">
+      <Label value="Car" background="#FFA39E"/>
+      <Label value="Truck" background="#FFD666"/>
+      <Label value="Pedestrian" background="#D4380D"/>
+      <Label value="Cyclist" background="#FFC069"/>
+    </Labels>
+    <PointCloud name="pcd" value="$frames" frameRate="5" overlayFrames="2"/>
+    <Cuboid name="box" toName="pcd">
+      <FrameAttribute value="occluded" title="Occlusion" choices="0,1,2,3" default="0"/>
+      <FrameAttribute value="truncated" title="Truncation" choices="0,0.5,1" default="0"/>
+      <FrameAttribute value="moving" title="Moving"/>
+    </Cuboid>
+  </View>
+
+  <!--{
+    "sequence": "0001",
+    "frames": [
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000000.pcd", "pose": [1.0, -0.0, 0.0, 0, 0.0, 1.0, 0.0, 0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000001.pcd", "pose": [0.999928, -0.012, 0.0, 1.0, 0.012, 0.999928, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000002.pcd", "pose": [0.999712, -0.023998, 0.0, 1.999928, 0.023998, 0.999712, 0.0, 0.012, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000003.pcd", "pose": [0.999352, -0.035992, 0.0, 2.99964, 0.035992, 0.999352, 0.0, 0.035997, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000004.pcd", "pose": [0.998848, -0.047982, 0.0, 3.998992, 0.047982, 0.998848, 0.0, 0.07199, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000005.pcd", "pose": [0.998201, -0.059964, 0.0, 4.99784, 0.059964, 0.998201, 0.0, 0.119971, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000006.pcd", "pose": [0.997409, -0.071938, 0.0, 5.996041, 0.071938, 0.997409, 0.0, 0.179935, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]},
+        {"pointcloud": "/static/samples/pointcloud/sequence_0001/000007.pcd", "pose": [0.996474, -0.083901, 0.0, 6.99345, 0.083901, 0.996474, 0.0, 0.251873, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}
+    ]
+  }-->

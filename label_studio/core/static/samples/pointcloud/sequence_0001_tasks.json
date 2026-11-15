@@ -1,0 +1,478 @@
+[
+ {
+  "data": {
+   "sequence": "0001",
+   "frames": [
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000000.pcd",
+     "pose": [
+      1.0,
+      -0.0,
+      0.0,
+      0,
+      0.0,
+      1.0,
+      0.0,
+      0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000001.pcd",
+     "pose": [
+      0.999928001,
+      -0.011999712,
+      0.0,
+      1.0,
+      0.011999712,
+      0.999928001,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000002.pcd",
+     "pose": [
+      0.999712014,
+      -0.023997696,
+      0.0,
+      1.999928001,
+      0.023997696,
+      0.999712014,
+      0.0,
+      0.011999712,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000003.pcd",
+     "pose": [
+      0.99935207,
+      -0.035992225,
+      0.0,
+      2.999640015,
+      0.035992225,
+      0.99935207,
+      0.0,
+      0.035997408,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000004.pcd",
+     "pose": [
+      0.998848221,
+      -0.04798157,
+      0.0,
+      3.998992085,
+      0.04798157,
+      0.998848221,
+      0.0,
+      0.071989633,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000005.pcd",
+     "pose": [
+      0.99820054,
+      -0.059964006,
+      0.0,
+      4.997840306,
+      0.059964006,
+      0.99820054,
+      0.0,
+      0.119971203,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000006.pcd",
+     "pose": [
+      0.99740912,
+      -0.071937808,
+      0.0,
+      5.996040846,
+      0.071937808,
+      0.99740912,
+      0.0,
+      0.179935209,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    {
+     "pointcloud": "/static/samples/pointcloud/sequence_0001/000007.pcd",
+     "pose": [
+      0.996474074,
+      -0.083901251,
+      0.0,
+      6.993449965,
+      0.083901251,
+      0.996474074,
+      0.0,
+      0.251873017,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    }
+   ]
+  },
+  "predictions": [
+   {
+    "model_version": "synthetic-keyframes",
+    "score": 1.0,
+    "result": [
+     {
+      "id": "track0",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 12.0,
+          "y": -2.2,
+          "z": -0.955
+         },
+         "dimensions": {
+          "length": 4.4,
+          "width": 1.85,
+          "height": 1.55
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0.0
+         }
+        },
+        {
+         "frame": 7,
+         "enabled": true,
+         "position": {
+          "x": 13.8511,
+          "y": -3.6268,
+          "z": -0.955
+         },
+         "dimensions": {
+          "length": 4.4,
+          "width": 1.85,
+          "height": 1.55
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": -0.084
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Car"
+       ]
+      }
+     },
+     {
+      "id": "track1",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 40.0,
+          "y": 3.4,
+          "z": -0.98
+         },
+         "dimensions": {
+          "length": 4.1,
+          "width": 1.8,
+          "height": 1.5
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 3.141593
+         }
+        },
+        {
+         "frame": 7,
+         "enabled": true,
+         "position": {
+          "x": 24.7839,
+          "y": 1.0725,
+          "z": -0.98
+         },
+         "dimensions": {
+          "length": 4.1,
+          "width": 1.8,
+          "height": 1.5
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 3.057593
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Car"
+       ]
+      }
+     },
+     {
+      "id": "track2",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 7.5,
+          "y": 6.8,
+          "z": -0.93
+         },
+         "dimensions": {
+          "length": 4.6,
+          "width": 1.9,
+          "height": 1.6
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 1.53589
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Car"
+       ]
+      }
+     },
+     {
+      "id": "track3",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 30.0,
+          "y": -6.0,
+          "z": -0.13
+         },
+         "dimensions": {
+          "length": 8.5,
+          "width": 2.5,
+          "height": 3.2
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0.0
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Truck"
+       ]
+      }
+     },
+     {
+      "id": "track4",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 18.0,
+          "y": -7.5,
+          "z": -0.855
+         },
+         "dimensions": {
+          "length": 0.6,
+          "width": 0.6,
+          "height": 1.75
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 1.570796
+         }
+        },
+        {
+         "frame": 5,
+         "enabled": true,
+         "position": {
+          "x": 12.5668,
+          "y": -7.6373,
+          "z": -0.855
+         },
+         "dimensions": {
+          "length": 0.6,
+          "width": 0.6,
+          "height": 1.75
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 1.510796
+         }
+        },
+        {
+         "frame": 6,
+         "enabled": false,
+         "position": {
+          "x": 12.5668,
+          "y": -7.6373,
+          "z": -0.855
+         },
+         "dimensions": {
+          "length": 0.6,
+          "width": 0.6,
+          "height": 1.75
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 1.510796
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Pedestrian"
+       ]
+      }
+     },
+     {
+      "id": "track5",
+      "from_name": "box",
+      "to_name": "pcd",
+      "type": "cuboid",
+      "value": {
+       "sequence": [
+        {
+         "frame": 0,
+         "enabled": true,
+         "position": {
+          "x": 20.0,
+          "y": -0.2,
+          "z": -0.88
+         },
+         "dimensions": {
+          "length": 1.8,
+          "width": 0.6,
+          "height": 1.7
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0.0
+         }
+        },
+        {
+         "frame": 7,
+         "enabled": true,
+         "position": {
+          "x": 17.108,
+          "y": -1.8939,
+          "z": -0.88
+         },
+         "dimensions": {
+          "length": 1.8,
+          "width": 0.6,
+          "height": 1.7
+         },
+         "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": -0.084
+         }
+        }
+       ],
+       "framesCount": 8,
+       "labels": [
+        "Cyclist"
+       ]
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

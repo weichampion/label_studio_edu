@@ -80,6 +80,7 @@ const Model = types
         "PolygonLabels",
         "KeyPointLabels",
         "BrushLabels",
+        "PointLabels",
         "HyperTextLabels",
         "TimelineLabels",
         "TimeSeriesLabels",

@@ -13,6 +13,7 @@ GROUP_LABELS = {
     'Structured Data Parsing': '结构化数据解析',
     'Time Series Analysis': '时间序列分析',
     'Videos': '视频',
+    '3D Point Cloud': '3D 点云/自动驾驶',
     'Generative AI': '生成式 AI',
     'Community Contributions': '社区贡献模板',
     CUSTOM_TEMPLATE: '自定义模板（Custom template，可写任意配置）',
@@ -50,7 +51,7 @@ def config_pairs(label_config):
 
 OBJECT_TAGS = {
     'image', 'text', 'hypertext', 'audio', 'audioplus', 'video', 'paragraphs', 'table', 'timeseries', 'pdf',
-    'list', 'chat', 'markdown',
+    'list', 'chat', 'markdown', 'pointcloud',
 }
 
 

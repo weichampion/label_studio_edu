@@ -1,0 +1,485 @@
+/* <PointCloud> 3D annotation view. Canvas internals use fixed dark colours (see Viewer3D.js). */
+.pointcloud {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tight);
+  outline: none;
+  color: var(--color-neutral-content);
+}
+
+.pointcloud:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary-border-subtle);
+  border-radius: var(--corner-radius-small, 4px);
+}
+
+.pointcloud__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--color-neutral-border);
+  margin: 0 var(--spacing-tighter);
+}
+
+.pointcloud__spacer {
+  flex: 1;
+}
+
+.pointcloud__control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-tighter);
+  font-size: var(--font-size-body-small);
+}
+
+.pointcloud__control select,
+.pointcloud__field input {
+  background: var(--color-neutral-background);
+  color: var(--color-neutral-content);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+  padding: 2px var(--spacing-tighter);
+}
+
+.pointcloud__help {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-tighter) var(--spacing-base);
+  margin: 0;
+  padding: var(--spacing-tight);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+  font-size: var(--font-size-body-small);
+}
+
+.pointcloud__help div {
+  display: flex;
+  gap: var(--spacing-tight);
+}
+
+.pointcloud__help dt {
+  min-width: 72px;
+}
+
+.pointcloud__help dd {
+  margin: 0;
+}
+
+.pointcloud kbd {
+  padding: 0 4px;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: var(--font-size-body-smaller);
+}
+
+.pointcloud__body {
+  display: flex;
+  gap: var(--spacing-tight);
+  min-height: 300px;
+}
+
+.pointcloud__main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pointcloud__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.pointcloud__canvas canvas {
+  display: block;
+}
+
+.pointcloud__status {
+  position: absolute;
+  left: var(--spacing-tight);
+  bottom: var(--spacing-tight);
+  padding: 2px var(--spacing-tight);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #e6edf3;
+  font-size: var(--font-size-body-smaller);
+  pointer-events: none;
+}
+
+.pointcloud__side {
+  flex: none;
+  width: 280px;
+  overflow-y: auto;
+}
+
+.pointcloud__hint {
+  margin: 0;
+  padding: var(--spacing-tight);
+  font-size: var(--font-size-body-small);
+  color: var(--color-neutral-content-subtle);
+}
+
+.pointcloud__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__panel-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-body-small);
+}
+
+.pointcloud__projection canvas {
+  display: block;
+  border-radius: 4px;
+  touch-action: none;
+}
+
+.pointcloud__fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-tighter);
+  margin: 0;
+  padding: var(--spacing-tighter);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+}
+
+.pointcloud__fields legend {
+  font-size: var(--font-size-body-smaller);
+  padding: 0 4px;
+}
+
+.pointcloud__field {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-size-body-smaller);
+}
+
+.pointcloud__field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.pointcloud__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__cameras-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__cameras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-tight);
+}
+
+.pointcloud__camera {
+  margin: 0;
+}
+
+.pointcloud__camera figcaption {
+  font-size: var(--font-size-body-smaller);
+  color: var(--color-neutral-content-subtle);
+}
+
+.pointcloud__camera-frame {
+  position: relative;
+}
+
+.pointcloud__camera-frame img,
+.pointcloud__camera-frame canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pointcloud__camera-frame canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .pointcloud__body {
+    flex-direction: column;
+    height: auto !important;
+  }
+
+  .pointcloud__main {
+    height: 420px;
+    flex: none;
+  }
+
+  .pointcloud__side {
+    width: 100%;
+  }
+}
+
+/* ---- sequences: frame controls and track timeline ---- */
+.pointcloud__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__frames {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__frame-slider {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+}
+
+.pointcloud__frame-slider input {
+  width: 100%;
+}
+
+.pointcloud__frame-label {
+  font-size: var(--font-size-body-small);
+  font-variant-numeric: tabular-nums;
+  min-width: 140px;
+}
+
+.pointcloud__tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+  padding: var(--spacing-tighter);
+}
+
+.pointcloud__track {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-tight);
+}
+
+.pointcloud__track_selected .pointcloud__track-name {
+  font-weight: 600;
+}
+
+.pointcloud__track-name {
+  flex: none;
+  width: 150px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-tighter);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border: none;
+  background: none;
+  color: var(--color-neutral-content);
+  font-size: var(--font-size-body-smaller);
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pointcloud__track-name:focus-visible {
+  outline: 2px solid var(--color-primary-border-subtle);
+}
+
+.pointcloud__swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.pointcloud__lane {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  background: var(--color-neutral-surface, var(--color-neutral-background));
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pointcloud__span {
+  position: absolute;
+  top: 5px;
+  height: 6px;
+  border-radius: 3px;
+  opacity: 0.55;
+}
+
+.pointcloud__keyframe {
+  position: absolute;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  transform: rotate(45deg);
+  background: var(--color-neutral-content);
+}
+
+.pointcloud__keyframe_ended {
+  background: var(--color-negative-icon, #d4380d);
+}
+
+.pointcloud__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-primary-icon, #4c5fa9);
+  pointer-events: none;
+}
+
+.pointcloud__track-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__track-state {
+  font-size: var(--font-size-body-smaller);
+  color: var(--color-neutral-content-subtle);
+}
+
+/* ---- per-frame attributes ---- */
+.pointcloud__attributes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+  margin: 0;
+  padding: var(--spacing-tighter);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+}
+
+.pointcloud__attributes legend {
+  font-size: var(--font-size-body-smaller);
+  padding: 0 4px;
+}
+
+.pointcloud__attribute {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-tight);
+  font-size: var(--font-size-body-smaller);
+}
+
+.pointcloud__attribute select {
+  min-width: 0;
+  max-width: 60%;
+  background: var(--color-neutral-background);
+  color: var(--color-neutral-content);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+  padding: 2px var(--spacing-tighter);
+}
+
+.pointcloud__batch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-tighter);
+  padding: var(--spacing-tighter);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 4px;
+}
+
+.pointcloud__batch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-tighter);
+}
+
+.pointcloud__batch-row .pointcloud__field {
+  width: 90px;
+}
+
+.pointcloud__batch-row .pointcloud__attribute {
+  justify-content: flex-start;
+}
+
+.pointcloud__track-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pointcloud__attribute-name {
+  flex: none;
+  width: 150px;
+  padding-left: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-body-smaller);
+  color: var(--color-neutral-content-subtle);
+}
+
+.pointcloud__lane_attribute {
+  height: 10px;
+}
+
+.pointcloud__value {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  opacity: 0.8;
+}
+
+.pointcloud__range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--color-primary-icon, #4c5fa9);
+  opacity: 0.15;
+  outline: 1px solid var(--color-primary-border-subtle, #4c5fa9);
+  pointer-events: none;
+}
+
+/* ---- semantic segmentation (<PointLabels>) ---- */
+.pointcloud__seg-class {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-tighter);
+  font-size: var(--font-size-body-small);
+}
+
+.pointcloud__seg-counts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--font-size-body-smaller);
+}
+
+.pointcloud__seg-counts li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: var(--spacing-tighter);
+  font-variant-numeric: tabular-nums;
+}

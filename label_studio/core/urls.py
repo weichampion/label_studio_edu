@@ -111,6 +111,9 @@ urlpatterns = [
     path('docs/api/schema/yaml/', SpectacularYAMLAPIView.as_view(), name='schema-yaml'),
 ]
 
+# POINTCLOUD-3D: model-based tracking for the 3D editor (forwards to the project's interactive ML backend)
+urlpatterns.append(re_path(r'^', include('pointcloud3d.urls')))
+
 # SCHOOL-TENANCY: college workbench pages and APIs, only when the school app is installed
 if 'school_tenancy' in settings.INSTALLED_APPS:
     urlpatterns.append(re_path(r'^', include('school_tenancy.urls')))

@@ -6,6 +6,7 @@ import { ApartmentOutlined, AudioOutlined, LineChartOutlined, MessageOutlined } 
 import Registry from "../../core/Registry";
 import "./Node.prefix.css";
 import {
+  IconBoundingBox,
   IconBrushTool,
   IconBrushToolSmart,
   IconCircleTool,
@@ -97,6 +98,33 @@ const NodeViews: Record<string, NodeViewProps> = {
     icon: IconPolygonTool,
     altIcon: IconPolygonToolSmart,
     getContent: (node) => <span style={{ color: "#5a5a5a" }}>from {node.sequence[0]?.frame} frame</span>,
+  },
+
+  PointSegmentationRegionModel: {
+    name: "Point Labels",
+    icon: IconBrushTool,
+    getContent: (node: any) => {
+      const frames = node.labeledFrames?.length ?? 0;
+      const classes = node.usedClasses?.join(", ") ?? "";
+      const where = node.object?.isSequence ? `${frames} frame${frames === 1 ? "" : "s"}: ` : "";
+
+      return <span style={{ color: "#5a5a5a" }}>{`${where}${classes || "no points labeled"}`}</span>;
+    },
+  },
+
+  CuboidRegionModel: {
+    name: "Cuboid",
+    icon: IconBoundingBox,
+    getContent: (node: any) => {
+      const box = node.box;
+      const size = box ? `${box.length.toFixed(1)}×${box.width.toFixed(1)}×${box.height.toFixed(1)} m` : "";
+      const track = node.isTrack
+        ? `, frames ${node.lifespans.map((r: any) => `${r.start + 1}–${r.end + 1}`).join(", ")}`
+        : "";
+      const points = node.pointCount !== null && node.pointCount !== undefined ? `, ${node.pointCount} pts` : "";
+
+      return <span style={{ color: "#5a5a5a" }}>{`${size}${track}${points}`}</span>;
+    },
   },
 
   PolygonRegionModel: {

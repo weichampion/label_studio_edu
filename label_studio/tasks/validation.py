@@ -38,6 +38,8 @@ _DATA_TYPES = {
     'TimeSeriesLabels': [str, list],
     'Taxonomy': [str, list, type(None)],
     'Ranker': [list, str],
+    # POINTCLOUD-3D: one scan URL, or a list of frames for sequence annotation
+    'PointCloud': [str, list],
 }
 logger = logging.getLogger(__name__)
 

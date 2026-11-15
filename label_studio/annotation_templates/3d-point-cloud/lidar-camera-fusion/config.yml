@@ -1,0 +1,51 @@
+title: LiDAR + Camera Fusion
+type: community
+group: 3D Point Cloud
+order: 2
+image: /static/templates/lidar-camera-fusion.png
+details: |
+  <h1>Label 3D boxes in the point cloud and check them on calibrated camera images</h1>
+  <dl>
+    <dt>Industry Applications</dt>
+    <dd>autonomous driving, sensor fusion, ADAS validation, robotics</dd>
+    <dt>Associated Models</dt>
+    <dd>BEVFusion, TransFusion, MVX-Net, Frustum PointNets</dd>
+    <dt>Domain Terminology</dt>
+    <dd>sensor fusion, calibration, intrinsic, extrinsic, KITTI, occlusion</dd>
+    <dt>Camera data</dt>
+    <dd>"cameras" is a list of {"name", "url", "intrinsic" (3x3 K or 3x4 P), "extrinsic" (4x4 LiDAR to camera)}. KITTI calib fields P2, R0_rect and Tr_velo_to_cam are accepted too.</dd>
+  </dl>
+config: |
+  <View>
+    <Labels name="label" toName="pcd">
+      <Label value="Car" background="#FFA39E"/>
+      <Label value="Truck" background="#FFD666"/>
+      <Label value="Pedestrian" background="#D4380D"/>
+      <Label value="Cyclist" background="#FFC069"/>
+    </Labels>
+    <PointCloud name="pcd" value="$pointcloud" images="$cameras" colorMode="intensity"/>
+    <Cuboid name="box" toName="pcd"/>
+    <View visibleWhen="region-selected">
+      <Header value="Occlusion"/>
+      <Choices name="occlusion" toName="pcd" perRegion="true" choice="single-radio">
+        <Choice value="0 - Fully visible"/>
+        <Choice value="1 - Partly occluded"/>
+        <Choice value="2 - Largely occluded"/>
+        <Choice value="3 - Unknown"/>
+      </Choices>
+    </View>
+  </View>
+
+  <!--{
+    "pointcloud": "/static/samples/pointcloud/scene_000001.pcd",
+    "cameras": [
+      {
+        "name": "front",
+        "url": "/static/samples/pointcloud/scene_000001_front.png",
+        "intrinsic": [620.0, 0.0, 480.0, 0.0, 620.0, 250.0, 0.0, 0.0, 1.0],
+        "extrinsic": [0.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -0.08, 1.0, 0.0, 0.0, -0.27, 0.0, 0.0, 0.0, 1.0],
+        "width": 960,
+        "height": 540
+      }
+    ]
+  }-->

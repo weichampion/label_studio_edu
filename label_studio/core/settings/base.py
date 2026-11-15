@@ -524,6 +524,9 @@ SUPPORTED_EXTENSIONS = set(
         '.webm',
         '.webp',
         '.pdf',
+        # POINTCLOUD-3D: LiDAR scans (PCD, KITTI / nuScenes float32 .bin)
+        '.pcd',
+        '.bin',
     ]
 )
 

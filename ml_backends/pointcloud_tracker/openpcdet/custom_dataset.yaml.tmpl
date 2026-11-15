@@ -1,0 +1,54 @@
+# OpenPCDet custom dataset for one Label Studio project (filled in by tracker3d/training.py).
+# Based on OpenPCDet tools/cfgs/dataset_configs/custom_dataset.yaml; check it against your OpenPCDet version.
+DATASET: 'CustomDataset'
+DATA_PATH: '{{DATA_PATH}}'
+
+POINT_CLOUD_RANGE: [-69.12, -39.68, -3, 69.12, 39.68, 1]
+
+MAP_CLASS_TO_KITTI: {{MAP_CLASS_TO_KITTI}}
+
+DATA_SPLIT: {
+    'train': train,
+    'test': val
+}
+
+INFO_PATH: {
+    'train': [custom_infos_train.pkl],
+    'test': [custom_infos_val.pkl],
+}
+
+POINT_FEATURE_ENCODING: {
+    encoding_type: absolute_coordinates_encoding,
+    used_feature_list: ['x', 'y', 'z', 'intensity'],
+    src_feature_list: ['x', 'y', 'z', 'intensity'],
+}
+
+DATA_AUGMENTOR:
+    DISABLE_AUG_LIST: ['placeholder']
+    AUG_CONFIG_LIST:
+        - NAME: random_world_flip
+          ALONG_AXIS_LIST: ['x']
+
+        - NAME: random_world_rotation
+          WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
+
+        - NAME: random_world_scaling
+          WORLD_SCALE_RANGE: [0.95, 1.05]
+
+DATA_PROCESSOR:
+    - NAME: mask_points_and_boxes_outside_range
+      REMOVE_OUTSIDE_BOXES: True
+
+    - NAME: shuffle_points
+      SHUFFLE_ENABLED: {
+        'train': True,
+        'test': False
+      }
+
+    - NAME: transform_points_to_voxels
+      VOXEL_SIZE: [0.16, 0.16, 4]
+      MAX_POINTS_PER_VOXEL: 32
+      MAX_NUMBER_OF_VOXELS: {
+        'train': 16000,
+        'test': 40000
+      }

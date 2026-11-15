@@ -84,6 +84,7 @@ powershell -ExecutionPolicy Bypass -File deploy\school\local\run-local.ps1 -Seed
 | 音频标注 | `Audio`、`AudioPlus` |
 | 视频标注 | `Video` |
 | 时间序列标注 | `TimeSeries` |
+| 3D 点云标注 | `PointCloud`（含 `Cuboid` 3D 框和融合视图的相机图像，见 `pointcloud3d/README.md`） |
 | 其他标注 | 以上之外的数据标签 |
 
 - **默认允许全部模块**；全部勾选时保存为“不限制”，以后项目新增的模块也自动可用。

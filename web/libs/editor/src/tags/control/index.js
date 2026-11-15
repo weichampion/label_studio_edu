@@ -14,6 +14,9 @@ import { ParagraphLabelsModel } from "./ParagraphLabels";
 import { TimeSeriesLabelsModel } from "./TimeSeriesLabels";
 import { TimelineLabelsModel } from "./TimelineLabels";
 import { VideoRectangleModel } from "./VideoRectangle";
+import { CuboidModel } from "./Cuboid";
+import { FrameAttributeModel } from "./FrameAttribute";
+import { PointLabelsModel } from "./PointLabels";
 import { VideoVectorModel } from "./VideoVector";
 import { VideoVectorLabelsModel } from "./VideoVectorLabels";
 
@@ -54,6 +57,9 @@ export {
   TimeSeriesLabelsModel,
   TimelineLabelsModel,
   VideoRectangleModel,
+  CuboidModel,
+  FrameAttributeModel,
+  PointLabelsModel,
   BrushLabelsModel,
   BrushModel,
   EllipseLabelsModel,

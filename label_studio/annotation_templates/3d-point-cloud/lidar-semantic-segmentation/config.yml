@@ -1,0 +1,36 @@
+title: LiDAR Semantic Segmentation
+type: community
+group: 3D Point Cloud
+order: 4
+image: /static/templates/lidar-semantic-segmentation.png
+details: |
+  <h1>Give every point of a LiDAR scan a class</h1>
+  <dl>
+    <dt>Industry Applications</dt>
+    <dd>autonomous driving, HD mapping, drivable area detection, robotics, digital twins</dd>
+    <dt>Associated Models</dt>
+    <dd>RandLA-Net, Cylinder3D, SPVCNN, PointTransformer, KPConv (OpenPCSeg, MMDetection3D)</dd>
+    <dt>Domain Terminology</dt>
+    <dd>semantic segmentation, point labels, SemanticKITTI, ground segmentation, brush, lasso</dd>
+    <dt>Data</dt>
+    <dd>.pcd or KITTI .bin, single scans or sequences ("frames" list). Paint with the brush (U) or lasso (L); "Label Ground" and "Fill From Boxes" label most points automatically. Exports SemanticKITTI .label files.</dd>
+  </dl>
+config: |
+  <View>
+    <PointCloud name="pcd" value="$pointcloud" colorMode="height"/>
+    <PointLabels name="seg" toName="pcd">
+      <Label value="Road" background="#FF00FF"/>
+      <Label value="Sidewalk" background="#4B004B"/>
+      <Label value="Building" background="#FFC800"/>
+      <Label value="Pole" background="#FFF096"/>
+      <Label value="Vegetation" background="#00AF00"/>
+      <Label value="Car" background="#6496F5"/>
+      <Label value="Truck" background="#501EB4"/>
+      <Label value="Pedestrian" background="#FF1E1E"/>
+      <Label value="Cyclist" background="#C828FF"/>
+    </PointLabels>
+  </View>
+
+  <!--{
+    "pointcloud": "/static/samples/pointcloud/scene_000001.pcd"
+  }-->

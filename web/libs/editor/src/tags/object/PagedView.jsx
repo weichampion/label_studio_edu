@@ -64,6 +64,9 @@ const Model = types.model({
     "paragraphlabels",
     "video",
     "videorectangle",
+    "pointcloud",
+    "cuboid",
+    "pointlabels",
   ]),
 });
 

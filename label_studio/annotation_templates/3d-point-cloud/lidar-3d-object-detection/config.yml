@@ -1,0 +1,32 @@
+title: LiDAR 3D Object Detection
+type: community
+group: 3D Point Cloud
+order: 1
+image: /static/templates/lidar-3d-object-detection.png
+details: |
+  <h1>Draw 3D boxes (cuboids) around objects in a LiDAR point cloud</h1>
+  <dl>
+    <dt>Industry Applications</dt>
+    <dd>autonomous driving, ADAS, robotics, delivery robots, mapping, smart infrastructure, traffic monitoring</dd>
+    <dt>Associated Models</dt>
+    <dd>PointPillars, SECOND, PV-RCNN, CenterPoint, VoxelNeXt (OpenPCDet, MMDetection3D)</dd>
+    <dt>Domain Terminology</dt>
+    <dd>point cloud, cuboid, 3D bounding box, bird's-eye view (BEV), yaw, KITTI, nuScenes</dd>
+    <dt>Data</dt>
+    <dd>.pcd (ascii / binary / binary_compressed) or KITTI .bin (float32 x, y, z, intensity). Coordinates: x forward, y left, z up.</dd>
+  </dl>
+config: |
+  <View>
+    <Labels name="label" toName="pcd">
+      <Label value="Car" background="#FFA39E"/>
+      <Label value="Truck" background="#FFD666"/>
+      <Label value="Pedestrian" background="#D4380D"/>
+      <Label value="Cyclist" background="#FFC069"/>
+    </Labels>
+    <PointCloud name="pcd" value="$pointcloud" colorMode="height"/>
+    <Cuboid name="box" toName="pcd"/>
+  </View>
+
+  <!--{
+    "pointcloud": "/static/samples/pointcloud/scene_000001.pcd"
+  }-->

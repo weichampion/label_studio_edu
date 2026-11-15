@@ -16,6 +16,8 @@ import { RichTextRegionModel } from "./RichTextRegion";
 import { TimelineRegionModel } from "./TimelineRegion";
 import { VideoRectangleRegionModel } from "./VideoRectangleRegion";
 import { VideoVectorRegionModel } from "./VideoVectorRegion";
+import { CuboidRegionModel } from "./CuboidRegion";
+import { PointSegmentationRegionModel } from "./PointSegmentationRegion";
 
 const AllRegionsType = types.union(
   AudioRegionModel,
@@ -34,6 +36,8 @@ const AllRegionsType = types.union(
   ParagraphsRegionModel,
   VideoRectangleRegionModel,
   VideoVectorRegionModel,
+  CuboidRegionModel,
+  PointSegmentationRegionModel,
   ...Registry.customTags.map((t) => t.region).filter(Boolean),
 );
 
@@ -63,4 +67,6 @@ export {
   TimelineRegionModel,
   VideoRectangleRegionModel,
   VideoVectorRegionModel,
+  CuboidRegionModel,
+  PointSegmentationRegionModel,
 };

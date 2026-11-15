@@ -79,5 +79,5 @@ module.exports = {
     // Full-app renderEditor tests require MST/load order not available in this env; skip until integration setup is ready.
     "renderEditor\\.test\\.",
   ],
-  transformIgnorePatterns: ["node_modules/?!(nanoid|konva|@adobe)"],
+  transformIgnorePatterns: ["node_modules/?!(nanoid|konva|@adobe|three)"],
 };

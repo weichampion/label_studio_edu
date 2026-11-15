@@ -17,7 +17,9 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
-from label_studio_sdk.converter import Converter
+from label_studio_sdk.converter import Converter  # noqa: F401 (kept for imports from this module)
+# POINTCLOUD-3D: SDK converter + KITTI_3D / OPENPCDET_3D export formats for <PointCloud> projects
+from pointcloud3d.converter import PointCloudConverter
 from tasks.models import Annotation
 
 logger = logging.getLogger(__name__)
@@ -130,7 +132,9 @@ class DataExport(object):
 
     @staticmethod
     def get_export_formats(project):
-        converter = Converter(config=project.get_parsed_config(), project_dir=None)
+        converter = PointCloudConverter(
+            config=project.get_parsed_config(), project_dir=None, label_config=project.label_config
+        )
         formats = []
         supported_formats = set(converter.supported_formats)
         for format, format_info in converter.all_formats().items():
@@ -156,13 +160,14 @@ class DataExport(object):
 
         input_json = DataExport.save_export_files(project, now, get_args, data, md5, name)
 
-        converter = Converter(
+        converter = PointCloudConverter(
             config=project.get_parsed_config(),
             project_dir=None,
             upload_dir=os.path.join(settings.MEDIA_ROOT, settings.UPLOAD_DIR),
             download_resources=download_resources,
             access_token=project.organization.created_by.auth_token.key,
             hostname=hostname,
+            label_config=project.label_config,
         )
         with get_temp_dir() as tmp_dir:
             converter.convert(input_json, tmp_dir, output_format, is_dir=False)

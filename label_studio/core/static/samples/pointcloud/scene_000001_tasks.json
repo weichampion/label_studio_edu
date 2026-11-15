@@ -1,0 +1,234 @@
+[
+  {
+    "data": {
+      "pointcloud": "/static/samples/pointcloud/scene_000001.pcd",
+      "cameras": [
+        {
+          "name": "front",
+          "url": "/static/samples/pointcloud/scene_000001_front.png",
+          "intrinsic": [
+            620.0,
+            0.0,
+            480.0,
+            0.0,
+            620.0,
+            250.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "extrinsic": [
+            0.0,
+            -1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            -1.0,
+            -0.08,
+            1.0,
+            0.0,
+            0.0,
+            -0.27,
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "width": 960,
+          "height": 540
+        }
+      ]
+    },
+    "predictions": [
+      {
+        "model_version": "synthetic-ground-truth",
+        "score": 1.0,
+        "result": [
+          {
+            "id": "gt0",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 12.0,
+                "y": -2.2,
+                "z": -0.955
+              },
+              "dimensions": {
+                "length": 4.4,
+                "width": 1.85,
+                "height": 1.55
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.0
+              },
+              "labels": [
+                "Car"
+              ]
+            }
+          },
+          {
+            "id": "gt1",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 22.5,
+                "y": 3.4,
+                "z": -0.98
+              },
+              "dimensions": {
+                "length": 4.1,
+                "width": 1.8,
+                "height": 1.5
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 3.141593
+              },
+              "labels": [
+                "Car"
+              ]
+            }
+          },
+          {
+            "id": "gt2",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 7.5,
+                "y": 6.8,
+                "z": -0.93
+              },
+              "dimensions": {
+                "length": 4.6,
+                "width": 1.9,
+                "height": 1.6
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.53589
+              },
+              "labels": [
+                "Car"
+              ]
+            }
+          },
+          {
+            "id": "gt3",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 34.0,
+                "y": -3.0,
+                "z": -0.13
+              },
+              "dimensions": {
+                "length": 8.5,
+                "width": 2.5,
+                "height": 3.2
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.0
+              },
+              "labels": [
+                "Truck"
+              ]
+            }
+          },
+          {
+            "id": "gt4",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 9.0,
+                "y": -6.2,
+                "z": -0.855
+              },
+              "dimensions": {
+                "length": 0.6,
+                "width": 0.6,
+                "height": 1.75
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.570796
+              },
+              "labels": [
+                "Pedestrian"
+              ]
+            }
+          },
+          {
+            "id": "gt5",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 15.5,
+                "y": -6.8,
+                "z": -0.905
+              },
+              "dimensions": {
+                "length": 0.6,
+                "width": 0.6,
+                "height": 1.65
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.570796
+              },
+              "labels": [
+                "Pedestrian"
+              ]
+            }
+          },
+          {
+            "id": "gt6",
+            "from_name": "box",
+            "to_name": "pcd",
+            "type": "cuboid",
+            "value": {
+              "position": {
+                "x": 18.0,
+                "y": -0.2,
+                "z": -0.88
+              },
+              "dimensions": {
+                "length": 1.8,
+                "width": 0.6,
+                "height": 1.7
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.087266
+              },
+              "labels": [
+                "Cyclist"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

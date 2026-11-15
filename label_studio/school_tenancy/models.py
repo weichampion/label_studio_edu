@@ -63,6 +63,7 @@ ANNOTATION_MODULES = (
     ('audio', '音频标注'),
     ('video', '视频标注'),
     ('timeseries', '时间序列标注'),
+    ('pointcloud', '3D 点云标注'),
     ('other', '其他标注'),
 )
 MODULE_OBJECT_TYPES = {
@@ -71,6 +72,8 @@ MODULE_OBJECT_TYPES = {
     'audio': {'audio', 'audioplus'},
     'video': {'video'},
     'timeseries': {'timeseries'},
+    # POINTCLOUD-3D: LiDAR point clouds (<PointCloud> + <Cuboid>, camera images included)
+    'pointcloud': {'pointcloud'},
 }
 
 
